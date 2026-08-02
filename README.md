@@ -31,4 +31,6 @@ See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for usage detai
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE). This project incorporates portions of other
+MIT-licensed software; see [`plugins/snippets/THIRD_PARTY_NOTICES.md`](./plugins/snippets/THIRD_PARTY_NOTICES.md)
+for the specific code regions and upstream copyright notices those regions require retaining.

@@ -27,5 +27,12 @@
     "snippets",
     "prompt-engineering",
     "output-styles"
-  ]
+  ],
+  "author": "misterdojo777",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/misterdojo777/omp-snippets.git",
+    "directory": "plugins/snippets"
+  },
+  "homepage": "https://github.com/misterdojo777/omp-snippets"
 }
