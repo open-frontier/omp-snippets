@@ -8,15 +8,19 @@ import {
 	type AutocompleteItem,
 	buildSnippetAutocompleteItems,
 	buildSnippetRegistry,
+	canToggleFromPicker,
+	computeAcceptedEditorText,
 	decodeRawKey,
 	expandTriggers,
 	loadSnippetDir,
+	nextPickerIndex,
 	resolveScheduler,
 	parseCommandArgs,
 	parseFrontmatterAliases,
 	parseSnippetBlocks,
 	pinSnippetByName,
 	processPinTriggers,
+	scrollPickerIntoView,
 	sortByPinState,
 	unpinGroupSiblings,
 	type SnippetDef,
@@ -621,6 +625,91 @@ describe("resolveScheduler", () => {
 			scheduler(() => resolve(true), 5);
 		});
 		expect(fired).toBe(true);
+	});
+});
+
+describe("canToggleFromPicker", () => {
+	it("allows pinnable items with no argument placeholder", () => {
+		expect(canToggleFromPicker({ pinnable: true, hasArgs: false })).toBe(true);
+	});
+
+	it("rejects non-pinnable items", () => {
+		expect(canToggleFromPicker({ pinnable: false, hasArgs: false })).toBe(false);
+	});
+
+	it("rejects pinnable items that take arguments — no value to bind from a keypress", () => {
+		expect(canToggleFromPicker({ pinnable: true, hasArgs: true })).toBe(false);
+	});
+
+	it("rejects an undefined item (empty picker, out-of-range selection)", () => {
+		expect(canToggleFromPicker(undefined)).toBe(false);
+	});
+});
+
+describe("nextPickerIndex", () => {
+	it("moves up within bounds", () => {
+		expect(nextPickerIndex(2, 5, "up")).toBe(1);
+	});
+
+	it("moves down within bounds", () => {
+		expect(nextPickerIndex(2, 5, "down")).toBe(3);
+	});
+
+	it("wraps from the first item to the last on up", () => {
+		expect(nextPickerIndex(0, 5, "up")).toBe(4);
+	});
+
+	it("wraps from the last item to the first on down", () => {
+		expect(nextPickerIndex(4, 5, "down")).toBe(0);
+	});
+
+	it("stays put with a single item in either direction", () => {
+		expect(nextPickerIndex(0, 1, "up")).toBe(0);
+		expect(nextPickerIndex(0, 1, "down")).toBe(0);
+	});
+});
+
+describe("computeAcceptedEditorText", () => {
+	it("replaces the matched trigger suffix with the accepted snippet name", () => {
+		expect(computeAcceptedEditorText("hello ::car", "::car", "careful")).toBe("hello ::careful ");
+	});
+
+	it("handles the trigger at the very start of the buffer", () => {
+		expect(computeAcceptedEditorText("::c", "::c", "concise")).toBe("::concise ");
+	});
+
+	it("preserves text before the trigger untouched", () => {
+		expect(computeAcceptedEditorText("first line\nsecond ::j", "::j", "judge")).toBe("first line\nsecond ::judge ");
+	});
+});
+
+describe("scrollPickerIntoView", () => {
+	function items(n: number): AutocompleteItem[] {
+		return Array.from({ length: n }, (_, i) => ({ label: `item${i}`, value: `item${i}`, pinnable: false, hasArgs: false }));
+	}
+
+	it("does not scroll when the selection is already within the visible window", () => {
+		const state = { matchedSuffix: "", items: items(5), selectedIndex: 2, windowStart: 0 };
+		scrollPickerIntoView(state);
+		expect(state.windowStart).toBe(0);
+	});
+
+	it("scrolls up when the selection moves above the visible window", () => {
+		const state = { matchedSuffix: "", items: items(20), selectedIndex: 3, windowStart: 5 };
+		scrollPickerIntoView(state);
+		expect(state.windowStart).toBe(3);
+	});
+
+	it("scrolls down when the selection moves below the visible window, exposing exactly MAX_PICKER_ROWS rows", () => {
+		const state = { matchedSuffix: "", items: items(20), selectedIndex: 15, windowStart: 0 };
+		scrollPickerIntoView(state);
+		expect(state.windowStart).toBe(8); // 15 - 8 + 1
+	});
+
+	it("clamps windowStart to 0 when the whole list fits in one page (maxStart is 0)", () => {
+		const state = { matchedSuffix: "", items: items(6), selectedIndex: 5, windowStart: 0 };
+		scrollPickerIntoView(state);
+		expect(state.windowStart).toBe(0);
 	});
 });
 

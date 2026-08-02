@@ -825,7 +825,7 @@ interface PickerState {
 }
 
 /** Slides `windowStart` so `selectedIndex` stays within the visible page. */
-function scrollPickerIntoView(state: PickerState): void {
+export function scrollPickerIntoView(state: PickerState): void {
 	const maxStart = Math.max(0, state.items.length - MAX_PICKER_ROWS);
 	if (state.selectedIndex < state.windowStart) {
 		state.windowStart = state.selectedIndex;
@@ -833,6 +833,15 @@ function scrollPickerIntoView(state: PickerState): void {
 		state.windowStart = state.selectedIndex - MAX_PICKER_ROWS + 1;
 	}
 	state.windowStart = Math.max(0, Math.min(state.windowStart, maxStart));
+}
+
+/** Pure gate for the Right-arrow pin-toggle: pinnable items only, and only
+ *  when there's no unbound arg placeholder to bind from a keypress alone —
+ *  those stay `::pin(name(args))` text-only. Shared by the render hint
+ *  (line below) and `togglePinOnHighlighted`'s actual gate — a test seam,
+ *  exported for direct unit testing without a real terminal input stream. */
+export function canToggleFromPicker(item: Pick<AutocompleteItem, "pinnable" | "hasArgs"> | undefined): boolean {
+	return !!item?.pinnable && !item.hasArgs;
 }
 
 function renderPicker(ctx: ExtensionContext, state: PickerState, pinned: ReadonlyMap<string, string>): void {
@@ -856,7 +865,7 @@ function renderPicker(ctx: ExtensionContext, state: PickerState, pinned: Readonl
 		lines.push(ctx.ui.theme.fg("muted", `  (${state.selectedIndex + 1}/${state.items.length})`));
 	}
 	const highlighted = state.items[state.selectedIndex];
-	if (highlighted?.pinnable && !highlighted.hasArgs) {
+	if (canToggleFromPicker(highlighted)) {
 		lines.push(ctx.ui.theme.fg("muted", "  → right arrow to toggle pin"));
 	}
 	ctx.ui.setWidget(PICKER_WIDGET_KEY, lines, { placement: "belowEditor" });
@@ -909,6 +918,22 @@ export function resolveScheduler(ctx: ExtensionContext): (fn: () => void, ms: nu
 	return (fn, ms) => setTimeout(fn, ms);
 }
 
+/** Pure index math for Up/Down navigation — wraps at both ends. A test
+ *  seam, exported for direct unit testing without a real terminal input
+ *  stream. */
+export function nextPickerIndex(current: number, length: number, direction: "up" | "down"): number {
+	if (direction === "up") return (current - 1 + length) % length;
+	return (current + 1) % length;
+}
+
+/** Pure: the new editor buffer text after accepting a picker selection —
+ *  splices `::<value> ` in place of the trailing matched trigger substring.
+ *  A test seam, exported for direct unit testing without a real terminal
+ *  input stream. */
+export function computeAcceptedEditorText(currentText: string, matchedSuffix: string, value: string): string {
+	return `${currentText.slice(0, currentText.length - matchedSuffix.length)}::${value} `;
+}
+
 /** Wires the raw-input picker for one session. Returns an unsubscribe function.
  *  `pinnedStyles` is the SAME map the `input`/`before_agent_start` handlers
  *  use — a single source of truth, so a Right-arrow toggle here is visible
@@ -942,9 +967,7 @@ function installSnippetPicker(ctx: ExtensionContext, pinnedStyles: Map<string, s
 	function acceptSelection(): void {
 		if (!picker) return;
 		const item = picker.items[picker.selectedIndex];
-		const text = ui.getEditorText();
-		const newText = `${text.slice(0, text.length - picker.matchedSuffix.length)}::${item.value} `;
-		ui.setEditorText(newText);
+		ui.setEditorText(computeAcceptedEditorText(ui.getEditorText(), picker.matchedSuffix, item.value));
 		closePicker();
 	}
 
@@ -958,7 +981,7 @@ function installSnippetPicker(ctx: ExtensionContext, pinnedStyles: Map<string, s
 	function togglePinOnHighlighted(): boolean {
 		if (!picker) return false;
 		const item = picker.items[picker.selectedIndex];
-		if (!item || !item.pinnable || item.hasArgs) return false;
+		if (!canToggleFromPicker(item)) return false;
 		if (pinnedStyles.has(item.value)) {
 			pinnedStyles.delete(item.value);
 		} else {
@@ -980,13 +1003,13 @@ function installSnippetPicker(ctx: ExtensionContext, pinnedStyles: Map<string, s
 				return { consume: true };
 			}
 			if (key === "up") {
-				picker.selectedIndex = (picker.selectedIndex - 1 + picker.items.length) % picker.items.length;
+				picker.selectedIndex = nextPickerIndex(picker.selectedIndex, picker.items.length, "up");
 				scrollPickerIntoView(picker);
 				renderPicker(ctx, picker, pinnedStyles);
 				return { consume: true };
 			}
 			if (key === "down") {
-				picker.selectedIndex = (picker.selectedIndex + 1) % picker.items.length;
+				picker.selectedIndex = nextPickerIndex(picker.selectedIndex, picker.items.length, "down");
 				scrollPickerIntoView(picker);
 				renderPicker(ctx, picker, pinnedStyles);
 				return { consume: true };
