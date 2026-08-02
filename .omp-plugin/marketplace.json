@@ -1,0 +1,21 @@
+{
+  "name": "omp-snippets",
+  "owner": {
+    "name": "misterdojo777"
+  },
+  "metadata": {
+    "description": "Composable ::name prompt snippets for omp, with a live picker and a pin mechanism for standing behavioral styles.",
+    "version": "0.1.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "snippets",
+      "description": "Composable ::name / ::name(args) prompt snippets — chain, parameterize, and pin reusable instruction fragments; live filterable picker; pin mechanism with exclusivity groups.",
+      "source": "./snippets",
+      "category": "productivity",
+      "keywords": ["prompt-engineering", "output-styles", "snippets"],
+      "homepage": "https://github.com/misterdojo777/omp-snippets"
+    }
+  ]
+}
