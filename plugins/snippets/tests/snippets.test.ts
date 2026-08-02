@@ -157,6 +157,76 @@ describe("loadSnippetDir", () => {
 	});
 });
 
+describe("loadSnippetDir — malformed and adversarial input", () => {
+	it("does not crash on an empty file, treating it as an empty body with no aliases", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "empty.md", "");
+		const registry = loadSnippetDir(dir);
+		expect(registry.get("empty")).toEqual({ name: "empty", raw: "", pinnable: false, group: undefined });
+	});
+
+	it("treats an unterminated frontmatter block (no closing ---) as no frontmatter at all", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "broken.md", "---\naliases: b\nno closing delimiter here");
+		const registry = loadSnippetDir(dir);
+		// The regex requires a closing `---`; without one, nothing is stripped
+		// and the whole file — including the leading `---` — becomes the body.
+		expect(registry.get("broken")?.raw).toBe("---\naliases: b\nno closing delimiter here");
+		expect(registry.get("b")).toBeUndefined(); // never parsed as an alias
+	});
+
+	it("does not crash on a file containing only frontmatter and no body", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "bare.md", "---\naliases: b\n---\n");
+		const registry = loadSnippetDir(dir);
+		expect(registry.get("bare")?.raw).toBe("");
+		expect(registry.get("b")?.name).toBe("bare");
+	});
+});
+
+describe("reserved trigger names (pin/unpin/pins) at the registry boundary", () => {
+	// A snippet author could legitimately (or maliciously, in a third-party
+	// marketplace catalog) ship a file literally named pin.md/unpin.md/pins.md.
+	// processPinTriggers intercepts the *parenthesized* `::pin(...)` /
+	// `::unpin(...)` forms and the bare `::pins` form unconditionally, before
+	// any registry lookup runs — confirming the actual precedence, not just
+	// the doc comment's claim of it.
+	it("permanently shadows a snippet named pins.md — ::pins always resolves to the status query", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "pins.md", "---\npinnable: true\n---\nnot the status query");
+		const registry = loadSnippetDir(dir);
+		const pinned = new Map<string, string>();
+		expect(processPinTriggers("::pins", registry, pinned)).toBe("(no active pins)");
+	});
+
+	it("permanently shadows a snippet named unpin.md for the parenthesized form — ::unpin(x) always resolves to the reserved unpin action", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "unpin.md", "---\npinnable: true\n---\nnot the unpin action");
+		writeSnippet(dir, "concise.md", "---\npinnable: true\n---\nbe concise");
+		const registry = loadSnippetDir(dir);
+		const pinned = new Map<string, string>([["concise", "be concise"]]);
+		expect(processPinTriggers("::unpin(concise)", registry, pinned)).toBe("(unpinned: concise)");
+	});
+
+	it("permanently shadows a snippet named pin.md for the parenthesized form — ::pin(x) always pins x via the reserved action, never resolves pin.md's own content", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "pin.md", "---\npinnable: true\n---\nnot the pin action");
+		writeSnippet(dir, "concise.md", "---\npinnable: true\n---\nbe concise");
+		const registry = loadSnippetDir(dir);
+		const pinned = new Map<string, string>();
+		expect(processPinTriggers("::pin(concise)", registry, pinned)).toBe("::concise");
+		expect(pinned.has("concise")).toBe(true);
+	});
+
+	it("a bare ::pin trigger (no parens) is NOT reserved and resolves to the ordinary pin.md snippet via expandTriggers", () => {
+		const dir = tempDir();
+		writeSnippet(dir, "pin.md", "this is the actual pin.md content");
+		const registry = loadSnippetDir(dir);
+		expect(expandTriggers("::pin", registry).text).toBe("this is the actual pin.md content");
+	});
+});
+
+
 describe("buildSnippetRegistry", () => {
 	it("merges .opencode/snippet and .omp/snippets, with .omp/snippets winning on collision", () => {
 		const cwd = tempDir();
