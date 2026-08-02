@@ -1,7 +1,7 @@
 {
   "name": "omp-snippets",
-  "version": "0.1.0",
-  "description": "Composable ::name prompt snippets for omp — chain, parameterize, and pin reusable instruction fragments; live picker; pin mechanism with exclusivity groups.",
+  "version": "0.1.1",
+  "description": "Composable ::name prompt snippets for omp \u2014 chain, parameterize, and pin reusable instruction fragments; live picker; pin mechanism with exclusivity groups.",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -9,7 +9,9 @@
     "test": "bun test"
   },
   "omp": {
-    "extensions": ["./src/snippets.ts"]
+    "extensions": [
+      "./src/snippets.ts"
+    ]
   },
   "peerDependencies": {
     "@oh-my-pi/pi-coding-agent": "*"

@@ -1,8 +1,11 @@
 /**
- * `::name` / `::name(args)` composable prompt-snippet expansion for omp,
- * ported from the `opencode-snippets` OpenCode plugin — the same
- * `aliases:` frontmatter + `<prepend>/<append>/<inject>` body schema, so
- * bodies are reusable across both tools verbatim.
+ * `::name` / `::name(args)` composable prompt-snippet expansion for omp.
+ * The trigger concept, `aliases:` frontmatter, and `<prepend>/<append>/<inject>`
+ * body schema originate from the `opencode-snippets` OpenCode plugin, so
+ * bodies are reusable across both tools verbatim. Two specific regions below
+ * are ported/copied from other MIT projects rather than independently
+ * designed — see `THIRD_PARTY_NOTICES.md` for exactly which code and the
+ * upstream copyright notices that porting carries with it.
  *
  * User-facing docs (usage, picker, pins, authoring guide): see this
  * package's `README.md`. This comment covers implementation rationale —
@@ -280,9 +283,10 @@ export function buildSnippetRegistry(cwd: string): Map<string, SnippetDef> {
 }
 
 // ============================================================================
-// Arg placeholder substitution — ported from src/utils/command-args.ts
-// (same convention as .omp/commands/*.md; not part of the package's public
-// export surface, so reimplemented rather than imported)
+// Arg placeholder substitution — copied from @oh-my-pi/pi-coding-agent's
+// src/utils/command-args.ts (same convention as .omp/commands/*.md; not part
+// of the package's public export surface, so copied rather than imported).
+// See THIRD_PARTY_NOTICES.md for the upstream MIT notice this carries.
 // ============================================================================
 
 export function parseCommandArgs(argsString: string): string[] {
@@ -332,7 +336,8 @@ export function substituteArgs(content: string, args: string[]): string {
 }
 
 // ============================================================================
-// Block parser — ported from opencode-snippets' parseSnippetBlocks
+// Block parser — ported from opencode-snippets' parseSnippetBlocks.
+// See THIRD_PARTY_NOTICES.md for the upstream MIT notice this carries.
 // ============================================================================
 
 export type BlockType = "prepend" | "append" | "inject";
@@ -396,7 +401,8 @@ export function parseSnippetBlocks(content: string): ParsedSnippetBody | null {
 }
 
 // ============================================================================
-// Recursive expansion — ported from opencode-snippets' expandText/expandHashtags
+// Recursive expansion — ported from opencode-snippets' expandText/expandHashtags.
+// See THIRD_PARTY_NOTICES.md for the upstream MIT notice this carries.
 // ============================================================================
 
 interface BlockRecord {

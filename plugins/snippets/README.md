@@ -1,6 +1,8 @@
 # Snippets (`::name`)
 
-A native [omp](https://github.com/oh-my-pi) extension that ports the [`opencode-snippets`](https://github.com/JosXa/opencode-snippets) composable-prompt-fragment idea into `omp` sessions. Type `::name` anywhere in a message to expand a reusable instruction fragment — chain several in one message, pass arguments, or `::pin` one so it stays active every turn for the rest of the session.
+A native [omp](https://github.com/oh-my-pi) extension for composable prompt-fragment expansion. Type `::name` anywhere in a message to expand a reusable instruction fragment — chain several in one message, pass arguments, or `::pin` one so it stays active every turn for the rest of the session.
+
+The `::name` trigger concept, the `aliases:` frontmatter convention, and the `<prepend>/<append>/<inject>` body schema originate from [JosXa/opencode-snippets](https://github.com/JosXa/opencode-snippets); this extension's block-parsing/expansion engine is a direct algorithmic port of that project's `expander.ts`, not an independent reimplementation. See [Credits](#credits) below for exactly what's ported vs. original, and `THIRD_PARTY_NOTICES.md` for the license text that porting obligates.
 
 Not a slash command (`/name` must be the first token, one per message) — `::name` works inline, anywhere in your prose, and composes.
 
@@ -96,6 +98,14 @@ bun test
 
 The extension source (`src/snippets.ts`) carries the detailed "why" for every non-obvious implementation decision in its top-of-file doc comment.
 
+## Credits
+
+- **[JosXa/opencode-snippets](https://github.com/JosXa/opencode-snippets)** (MIT, Copyright (c) 2025 JosXa) — origin of the `#hashtag`-trigger concept (`::name` here), the `aliases:` frontmatter convention, and the `<prepend>/<append>/<inject>` body schema. `parseSnippetBlocks`, the `BlockRecord`/`BlockCollector`/`addBlock` dedup machinery, and `expandText`'s recursive-expansion/loop-detection structure are a direct port of that project's `src/expander.ts` — not an independent reimplementation of the same idea.
+- **[can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)** (MIT, Copyright (c) 2025 Mario Zechner, Copyright (c) 2025-2026 Can Bölük) — `parseCommandArgs`/`substituteArgs` (the `$1`/`$@`/`$ARGUMENTS` placeholder grammar) are copied near-verbatim from that package's internal `src/utils/command-args.ts`, to match `.omp/commands/*.md`'s existing argument convention exactly.
+- Original to this project: the pin/exclusivity-group mechanism, the live raw-terminal-input picker, the bundled-examples loader tier, and the regex-based frontmatter parser (`pinnable`/`group` support).
+
+See `THIRD_PARTY_NOTICES.md` for the full upstream license texts these portions require retaining.
+
 ## License
 
-MIT
+MIT for this project's own code — see `THIRD_PARTY_NOTICES.md` for the two ported regions that carry their own upstream MIT copyright notices.
