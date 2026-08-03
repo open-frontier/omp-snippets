@@ -452,6 +452,70 @@ describe("expandTriggers + assembleMessage", () => {
 		expect(result.append).toEqual([]);
 		expect(result.inject).toEqual([]);
 	});
+
+	it("passes bracketed content verbatim as $1/$ARGUMENTS, including parens and punctuation", () => {
+		const registry = registryFrom({ reflect: "Reflect on: $1" });
+		const result = expandTriggers("::reflect<<this (parenthetical) needs (nested) parens>>", registry);
+		expect(assembleMessage(result)).toBe("Reflect on: this (parenthetical) needs (nested) parens");
+	});
+
+	it("passes multi-line bracketed content as a single unsplit argument", () => {
+		const registry = registryFrom({ reflect: "Reflect on:\n$1" });
+		const result = expandTriggers("::reflect<<line one\nline two\nline three>>", registry);
+		expect(assembleMessage(result)).toBe("Reflect on:\nline one\nline two\nline three");
+	});
+
+	it("chains multiple triggers onto one shared bracketed argument", () => {
+		const registry = registryFrom({ reflect: "reflect($1)", tradeoff: "tradeoff($1)" });
+		const result = expandTriggers("::reflect::tradeoff<<the plan>>", registry);
+		expect(assembleMessage(result)).toBe("reflect(the plan) tradeoff(the plan)");
+	});
+
+	it("allows whitespace between chained triggers and the bracket", () => {
+		const registry = registryFrom({ reflect: "reflect($1)", tradeoff: "tradeoff($1)" });
+		const result = expandTriggers("::reflect ::tradeoff <<the plan>>", registry);
+		expect(assembleMessage(result)).toBe("reflect(the plan) tradeoff(the plan)");
+	});
+
+	it("expands known triggers and keeps unknown ones literal within a mixed chain", () => {
+		const registry = registryFrom({ reflect: "reflect($1)" });
+		const result = expandTriggers("::reflect::doesnotexist<<the plan>>", registry);
+		expect(assembleMessage(result)).toBe("reflect(the plan) ::doesnotexist");
+	});
+
+	it("leaves the entire chain and brackets untouched when no trigger in it is known", () => {
+		const registry = registryFrom({});
+		const result = expandTriggers("::doesnotexist<<some text>>", registry);
+		expect(assembleMessage(result)).toBe("::doesnotexist<<some text>>");
+	});
+
+	it("does not match << without an immediately preceding trigger (bit-shift, heredocs, code)", () => {
+		const registry = registryFrom({ reflect: "should not fire" });
+		const result = expandTriggers("cat <<EOF\nx << 2\nEOF", registry);
+		expect(assembleMessage(result)).toBe("cat <<EOF\nx << 2\nEOF");
+	});
+
+	it("falls back to expanding the bare trigger when the bracket is unclosed (consistent with unclosed parens today)", () => {
+		const registry = registryFrom({ reflect: "reflect($1)" });
+		const result = expandTriggers("::reflect<<never closed", registry);
+		expect(assembleMessage(result)).toBe("reflect()<<never closed");
+	});
+
+	it("routes append/prepend/inject blocks from a bracket-argument expansion same as (args)", () => {
+		const registry = registryFrom({
+			reflect: "<append>\n<task>reflect-task: $1</task>\n</append>\n\nreflecting",
+		});
+		const result = expandTriggers("::reflect<<the decision>>", registry);
+		expect(assembleMessage(result)).toBe("reflecting\n\n<task>reflect-task: the decision</task>");
+	});
+
+	it("matches only the first >> for bracket content containing its own >> (documented limitation)", () => {
+		const registry = registryFrom({ reflect: "reflect($1)" });
+		const result = expandTriggers("::reflect<<Foo<Bar<Baz>>>>", registry);
+		// closes at the first `>>` inside `Baz>>`, leaving a trailing `>>` as literal text
+		expect(assembleMessage(result)).toBe("reflect(Foo<Bar<Baz)>>");
+	});
+
 });
 
 // ============================================================================

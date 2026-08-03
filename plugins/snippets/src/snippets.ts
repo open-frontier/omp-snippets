@@ -1,5 +1,5 @@
 /**
- * `::name` / `::name(args)` composable prompt-snippet expansion for omp.
+ * `::name` / `::name(args)` / `::name<<...>>` composable prompt-snippet expansion for omp.
  * The trigger concept, `aliases:` frontmatter, and `<prepend>/<append>/<inject>`
  * body schema originate from the `opencode-snippets` OpenCode plugin, so
  * bodies are reusable across both tools verbatim. Two specific regions below
@@ -428,6 +428,71 @@ function addBlock(collector: BlockCollector, type: BlockType, snippetName: strin
 
 const TRIGGER_PATTERN = /::([\w-]+)(?:\(([^)]*)\))?/g;
 
+// `::name<<...>>` — an alternate argument form for when the argument is
+// prose rather than a short token list. `(args)` runs through
+// parseCommandArgs' shell-style tokenizer, which breaks on any unescaped
+// `)` in the text and is awkward across multiple lines; `<<...>>` instead
+// takes its entire contents verbatim as a single $1/$ARGUMENTS value — no
+// tokenizing, free to contain parens/quotes/newlines. One bracketed span
+// can also feed a *chain* of triggers stacked immediately before it:
+// `::a::b<<shared text>>` calls both `a` and `b` with the same argument,
+// mirroring how bare `::a ::b` already compose in one message today.
+//
+// Requiring the chain to sit immediately left of `<<` (only whitespace
+// between) is deliberate, not just stylistic: it's what keeps this pattern
+// from ever matching `<<` used for its ordinary meanings in pasted code
+// (bit-shift, heredocs, git conflict markers) — none of those are preceded
+// by a `::name` token, so they're never touched.
+//
+// Known limitation: matches the FIRST `>>`, so content containing its own
+// `>>` (pasted C++ nested generics `Foo<Bar<Baz>>`, a `>>` operator) closes
+// the bracket early — the same lenient, no-nesting tradeoff the
+// <prepend>/<append>/<inject> body-block parser above already accepts.
+const BRACKET_CHAIN_PATTERN = /((?:::[\w-]+\s*)+)<<([\s\S]*?)>>/g;
+const CHAIN_NAME_PATTERN = /::([\w-]+)/g;
+
+type TriggerExpansion = { ok: true; text: string } | { ok: false; loop: boolean };
+
+/** Expands one trigger occurrence against `args`. `ok: false` means the
+ *  caller should leave the original text unchanged (unknown name, malformed
+ *  body blocks, or empty result); `loop: true` additionally means expansion
+ *  depth was exceeded and the whole enclosing match should stop retrying. */
+function expandSingleTrigger(
+	name: string,
+	args: string[],
+	registry: Map<string, SnippetDef>,
+	expansionCounts: Map<string, number>,
+	collector: BlockCollector,
+): TriggerExpansion {
+	const snippet = registry.get(name.toLowerCase());
+	if (!snippet) return { ok: false, loop: false };
+
+	const count = (expansionCounts.get(snippet.name) ?? 0) + 1;
+	if (count > MAX_EXPANSION_DEPTH) return { ok: false, loop: true };
+	expansionCounts.set(snippet.name, count);
+
+	const substituted = substituteArgs(snippet.raw, args);
+	const parsed = parseSnippetBlocks(substituted);
+	if (!parsed) return { ok: false, loop: false }; // malformed blocks — leave unexpanded
+
+	if (!parsed.inline && parsed.prepend.length === 0 && parsed.append.length === 0 && parsed.inject.length === 0) {
+		return { ok: false, loop: false };
+	}
+
+	for (const type of BLOCK_TYPES) {
+		for (const raw of parsed[type]) {
+			const nested: BlockCollector = { prepend: [], append: [], inject: [], seen: new Set() };
+			const nestedContent = expandText(raw, registry, expansionCounts, nested);
+			addBlock(collector, type, snippet.name, nestedContent);
+			for (const nestedType of BLOCK_TYPES) {
+				for (const b of nested[nestedType]) addBlock(collector, nestedType, b.snippetName, b.content);
+			}
+		}
+	}
+
+	return { ok: true, text: expandText(parsed.inline, registry, expansionCounts, collector) };
+}
+
 export function expandText(
 	text: string,
 	registry: Map<string, SnippetDef>,
@@ -441,38 +506,37 @@ export function expandText(
 		const previous = expanded;
 		let loopDetected = false;
 
-		expanded = expanded.replace(TRIGGER_PATTERN, (match, name: string, argsStr: string | undefined) => {
-			const snippet = registry.get(name.toLowerCase());
-			if (!snippet) return match; // unknown trigger left unchanged
+		expanded = expanded.replace(BRACKET_CHAIN_PATTERN, (match, chain: string, content: string) => {
+			const names = [...chain.matchAll(CHAIN_NAME_PATTERN)].map((m) => m[1]);
+			const arg = [content.trim()];
+			const pieces: string[] = [];
+			let anyExpanded = false;
 
-			const count = (expansionCounts.get(snippet.name) ?? 0) + 1;
-			if (count > MAX_EXPANSION_DEPTH) {
-				loopDetected = true;
-				return match;
-			}
-			expansionCounts.set(snippet.name, count);
-
-			const args = parseCommandArgs(argsStr ?? "");
-			const substituted = substituteArgs(snippet.raw, args);
-			const parsed = parseSnippetBlocks(substituted);
-			if (!parsed) return match; // malformed blocks — leave unexpanded
-
-			if (!parsed.inline && parsed.prepend.length === 0 && parsed.append.length === 0 && parsed.inject.length === 0) {
-				return match;
-			}
-
-			for (const type of BLOCK_TYPES) {
-				for (const raw of parsed[type]) {
-					const nested: BlockCollector = { prepend: [], append: [], inject: [], seen: new Set() };
-					const nestedContent = expandText(raw, registry, expansionCounts, nested);
-					addBlock(collector, type, snippet.name, nestedContent);
-					for (const nestedType of BLOCK_TYPES) {
-						for (const b of nested[nestedType]) addBlock(collector, nestedType, b.snippetName, b.content);
-					}
+			for (const name of names) {
+				const result = expandSingleTrigger(name, arg, registry, expansionCounts, collector);
+				if (!result.ok) {
+					if (result.loop) loopDetected = true;
+					pieces.push(`::${name}`); // unknown/malformed — keep this one literal
+					continue;
 				}
+				anyExpanded = true;
+				pieces.push(result.text);
 			}
 
-			return expandText(parsed.inline, registry, expansionCounts, collector);
+			// Only consumes the brackets once at least one trigger actually
+			// expanded; an all-unknown chain leaves the whole match untouched,
+			// same as an unknown bare trigger today.
+			return anyExpanded ? pieces.join(" ") : match;
+		});
+
+		expanded = expanded.replace(TRIGGER_PATTERN, (match, name: string, argsStr: string | undefined) => {
+			const args = parseCommandArgs(argsStr ?? "");
+			const result = expandSingleTrigger(name, args, registry, expansionCounts, collector);
+			if (!result.ok) {
+				if (result.loop) loopDetected = true;
+				return match;
+			}
+			return result.text;
 		});
 
 		changed = expanded !== previous && !loopDetected;
