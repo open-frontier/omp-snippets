@@ -30,6 +30,8 @@ Two ways to bind `$1`/`$2`/`$@`/`$ARGUMENTS` in a snippet body:
   - The trigger chain must sit immediately before `<<` (whitespace allowed, nothing else) — this is what keeps `<<` from ever colliding with its ordinary meanings in pasted code (bit-shift `<<`, heredocs, git conflict markers): none of those are preceded by a `::name` token, so they're never touched.
   - Matches the *first* `>>` — content containing its own `>>` (e.g. pasted `Foo<Bar<Baz>>`) closes the bracket early. Same no-nesting tradeoff as `<prepend>`/`<append>`/`<inject>` snippet-body blocks.
   - An unclosed `<<...` falls back to expanding the bare trigger name and leaves the dangling `<<` as literal text, same as an unclosed `(` does today.
+  - Content is expanded recursively, so a nested `::name` typed inside an argument (either form) still expands normally once submitted — e.g. `::sidecar<<go check whether ::careful should apply here>>` expands `::careful` too, as long as the outer snippet's body actually places the argument somewhere in its output.
+  - The live picker is suppressed while an argument span is still open (no closing `)` or `>>` typed yet) — otherwise autocompleting a nested trigger name would hijack Tab/Enter/arrow keys away from the text you're composing.
 
 ## Live picker
 

@@ -824,6 +824,34 @@ const TRIGGER_AT_END = /::([\w-]*)$/;
 const MAX_PICKER_ROWS = 8;
 const MAX_PREVIEW_WORDS = 8;
 
+/** True once the cursor sits inside a trigger's argument span that hasn't
+ *  been closed yet - an open `::name(` with no `)` after it, or an open
+ *  `::name<<`/chain with no `>>` after it. The picker's own trigger match
+ *  (`TRIGGER_AT_END`) is blind to this: it fires on any `::word` sitting at
+ *  the end of the buffer, including one typed as a NESTED reference inside
+ *  someone else's still-open argument. Left unchecked, that pops the
+ *  autocomplete dropdown mid-prose and its Tab/Enter/arrow handling then
+ *  hijacks the very keys the user needs to keep typing or close the span -
+ *  exactly backwards for `<<...>>`, whose whole point is "type freely, no
+ *  interference." Suppressing the picker here does not touch expansion:
+ *  a nested `::name` typed and left inside a closed span still expands
+ *  normally once the message is submitted (recursed through the same
+ *  `expandText` call that renders the enclosing argument). */
+export function isInsideUnclosedTriggerArgs(text: string): boolean {
+	const chainOpen = /(?:::[\w-]+\s*)+<</g;
+	let lastEnd = -1;
+	let match: RegExpExecArray | null;
+	while ((match = chainOpen.exec(text))) lastEnd = match.index + match[0].length;
+	if (lastEnd !== -1 && !text.slice(lastEnd).includes(">>")) return true;
+
+	const parenOpen = /::[\w-]+\(/g;
+	lastEnd = -1;
+	while ((match = parenOpen.exec(text))) lastEnd = match.index + match[0].length;
+	if (lastEnd !== -1 && !text.slice(lastEnd).includes(")")) return true;
+
+	return false;
+}
+
 /** Ranks a registry entry against a typed query: exact > prefix > substring > no match (-1). */
 function scoreSnippetMatch(query: string, def: SnippetDef): number {
 	if (!query) return 0;
@@ -1020,7 +1048,8 @@ function installSnippetPicker(ctx: ExtensionContext, pinnedStyles: Map<string, s
 	}
 
 	function recomputePicker(): void {
-		const match = TRIGGER_AT_END.exec(ui.getEditorText());
+		const text = ui.getEditorText();
+		const match = isInsideUnclosedTriggerArgs(text) ? null : TRIGGER_AT_END.exec(text);
 		if (!match) {
 			closePicker();
 			return;

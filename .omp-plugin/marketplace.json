@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Composable ::name prompt snippets for omp, with a live picker and a pin mechanism for standing behavioral styles.",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "pluginRoot": "./plugins"
   },
   "plugins": [

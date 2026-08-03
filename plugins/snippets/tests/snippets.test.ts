@@ -12,6 +12,7 @@ import {
 	computeAcceptedEditorText,
 	decodeRawKey,
 	expandTriggers,
+	isInsideUnclosedTriggerArgs,
 	loadSnippetDir,
 	nextPickerIndex,
 	resolveScheduler,
@@ -814,6 +815,45 @@ describe("computeAcceptedEditorText", () => {
 
 	it("preserves text before the trigger untouched", () => {
 		expect(computeAcceptedEditorText("first line\nsecond ::j", "::j", "judge")).toBe("first line\nsecond ::judge ");
+	});
+});
+
+describe("isInsideUnclosedTriggerArgs", () => {
+	it("is false for plain text with no triggers", () => {
+		expect(isInsideUnclosedTriggerArgs("just talking about stuff")).toBe(false);
+	});
+
+	it("is false once a paren-arg trigger is closed", () => {
+		expect(isInsideUnclosedTriggerArgs("::reflect(closed) more text")).toBe(false);
+	});
+
+	it("is true while a paren-arg trigger is still open", () => {
+		expect(isInsideUnclosedTriggerArgs("::reflect(still typing")).toBe(true);
+	});
+
+	it("is true while typing a nested trigger inside an open paren", () => {
+		expect(isInsideUnclosedTriggerArgs("::reflect(please run ::car")).toBe(true);
+	});
+
+	it("is false once a bracket-arg trigger is closed", () => {
+		expect(isInsideUnclosedTriggerArgs("::reflect<<closed>> more text")).toBe(false);
+	});
+
+	it("is true while a bracket-arg trigger is still open", () => {
+		expect(isInsideUnclosedTriggerArgs("::reflect<<still typing")).toBe(true);
+	});
+
+	it("is true while typing a nested trigger inside an open bracket chain", () => {
+		expect(isInsideUnclosedTriggerArgs("::a::b<<please run ::car")).toBe(true);
+	});
+
+	it("is false for a bare :: with no open span at all", () => {
+		expect(isInsideUnclosedTriggerArgs("::reflect")).toBe(false);
+	});
+
+	it("only looks at the last open span, ignoring earlier closed ones", () => {
+		expect(isInsideUnclosedTriggerArgs("::a(closed) ::b<<also closed>> ::c(")).toBe(true);
+		expect(isInsideUnclosedTriggerArgs("::a(closed) ::b<<also closed>> plain text")).toBe(false);
 	});
 });
 
