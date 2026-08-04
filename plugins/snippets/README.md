@@ -58,16 +58,32 @@ Pins are session-only: they don't persist to disk and don't survive a restart.
 
 | Name | Aliases | Pinnable | What it does |
 |---|---|---|---|
+| `bluf` | `bottom-line`, `tldr` | yes | Lead with the one-sentence conclusion before any setup |
+| `brainstorm` | — | no | Back-and-forth exploration until a decision; don't stop at the first idea |
 | `careful` | `safe` | yes | Step-by-step, double-check work, ask when ambiguous |
 | `concise` | — | yes | Terse, no fluff, no hedging |
-| `explanatory` | `insight`, `insights`, `teach` | yes | Adds `★ Insight` educational asides alongside the work — mirrors Claude Code's official "Explanatory" output style |
+| `drift` | — | no | Compare original intent vs. actual result; verdict + smallest fix |
+| `explain_fix` | `xf`, `explain-fix` | no | Explain root cause and propose concrete fixes |
+| `explanatory` | `insight`, `insights`, `teach` | yes | Adds `★ Insight` educational asides alongside the work |
+| `informative` | `verbose`, `detailed` | yes | Thorough reasoning and context; the opposite stance of `concise` |
+| `max-chars` | `char-limit`, `maxchars` | yes | Hard-cap response length — `::pin(max-chars(280))` |
+| `plan-mode` | `planning` | yes | Investigate and propose, but don't write/edit/execute until approved |
 | `reflect` | `reframe`, `reformulate`, `clarify` | no | Identify core intent, reflect, reformulate more precisely |
+| `runbackground` | — | no | Run the following task via a background subagent |
+| `sidetrack` | `side`, `quick-thought` | no | Flag a brief detour; return to the prior topic afterward |
+| `socratic` | `socrates`, `discover` | yes | Never answer directly — lead with questions |
+| `subagent` | `delegate` | no | Delegate a task to a subagent off the main thread |
+| `tradeoff` | — | no | Balanced advantages / disadvantages / verdict |
+| `verify` | — | no | Re-check the last claim against real evidence, not recall |
+| `yoda` | `jedi` | yes | Inverted syntax; substance and code unchanged |
 
-These exist so `::` has something to try immediately after install. They're deliberately minimal — write your own for anything project- or workflow-specific.
+`bluf` and `socratic` share the `answer-delivery` exclusivity group — pinning one auto-unpins the other, since no response can both open with the answer and never state it.
+
+These ship so `::` works immediately after install. Override any of them by dropping a same-named `.md` into `.omp/snippets/`.
 
 ## Authoring your own snippets
 
-Drop a `.md` file into `.opencode/snippet/` in your project (shared with OpenCode's `opencode-snippets` plugin if you use both tools) or `.omp/snippets/` (omp-only — use this only when a snippet's content genuinely needs to diverge between the two tools; a byte-identical duplicate is a maintenance trap, not an override). Files are re-read from disk on every `::` trigger match, so changes take effect on your very next message — no restart needed. Your own snippets always take priority over the bundled examples with the same name.
+Drop a `.md` file into `.omp/snippets/` in your project — omp's native project config directory, the same family as `.omp/extensions/`, `.omp/commands/`, and `.omp/skills/`. Files are re-read from disk on every `::` trigger match, so changes take effect on your very next message — no restart needed. Your own snippets always take priority over a bundled example with the same name.
 
 ```markdown
 ---

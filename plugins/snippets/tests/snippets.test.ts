@@ -229,26 +229,15 @@ describe("reserved trigger names (pin/unpin/pins) at the registry boundary", () 
 
 
 describe("buildSnippetRegistry", () => {
-	it("merges .opencode/snippet and .omp/snippets, with .omp/snippets winning on collision", () => {
+	it("loads project snippets from .omp/snippets", () => {
 		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "shared.md", "shared-only body");
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "overridden.md", "opencode version");
-		writeSnippet(path.join(cwd, ".omp", "snippets"), "overridden.md", "omp-fork version");
-
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "mine.md", "my body");
 		const registry = buildSnippetRegistry(cwd);
-		expect(registry.get("shared")?.raw).toBe("shared-only body");
-		expect(registry.get("overridden")?.raw).toBe("omp-fork version");
+		expect(registry.get("mine")?.raw).toBe("my body");
 	});
 
-	it("still works when only one of the two directories exists", () => {
-		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "only.md", "content");
-		const registry = buildSnippetRegistry(cwd);
-		expect(registry.get("only")?.raw).toBe("content");
-	});
-
-	it("a project with no .opencode/snippet or .omp/snippets directory still gets the bundled examples", () => {
-		const cwd = tempDir(); // fresh temp dir, no snippet directories at all
+	it("a project with no .omp/snippets directory still gets the bundled examples", () => {
+		const cwd = tempDir(); // fresh temp dir, no snippet directory at all
 		const registry = buildSnippetRegistry(cwd);
 		expect(registry.get("careful")?.pinnable).toBe(true);
 		expect(registry.get("concise")?.pinnable).toBe(true);
@@ -258,9 +247,18 @@ describe("buildSnippetRegistry", () => {
 
 	it("a project-level snippet with the same name as a bundled example overrides it", () => {
 		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "careful.md", "---\npinnable: true\n---\nproject-level override");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nproject-level override");
 		const registry = buildSnippetRegistry(cwd);
 		expect(registry.get("careful")?.raw).toBe("project-level override");
+	});
+
+	it("ignores .opencode/snippet entirely — omp-native .omp/snippets is the only project tier", () => {
+		const cwd = tempDir();
+		writeSnippet(path.join(cwd, ".opencode", "snippet"), "opencode-only.md", "should never load");
+		writeSnippet(path.join(cwd, ".opencode", "snippet"), "careful.md", "---\n---\nshould not override bundled");
+		const registry = buildSnippetRegistry(cwd);
+		expect(registry.get("opencode-only")).toBeUndefined();
+		expect(registry.get("careful")?.raw).not.toContain("should not override bundled");
 	});
 });
 
@@ -665,8 +663,8 @@ describe("pinSnippetByName", () => {
 describe("buildSnippetAutocompleteItems", () => {
 	it("flags pinnable and non-pinnable items correctly", () => {
 		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "careful.md", "---\npinnable: true\n---\nbody");
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "verify.md", "---\n---\nbody");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nbody");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "verify.md", "---\n---\nbody");
 		const items = buildSnippetAutocompleteItems(cwd, "");
 		expect(items.find((i) => i.value === "careful")?.pinnable).toBe(true);
 		expect(items.find((i) => i.value === "verify")?.pinnable).toBe(false);
@@ -674,8 +672,8 @@ describe("buildSnippetAutocompleteItems", () => {
 
 	it("flags hasArgs when the body has an unbound placeholder", () => {
 		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "max-chars.md", "---\npinnable: true\n---\nLimit to $1 chars");
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "careful.md", "---\npinnable: true\n---\nBe careful, no placeholders");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "max-chars.md", "---\npinnable: true\n---\nLimit to $1 chars");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nBe careful, no placeholders");
 		const items = buildSnippetAutocompleteItems(cwd, "");
 		expect(items.find((i) => i.value === "max-chars")?.hasArgs).toBe(true);
 		expect(items.find((i) => i.value === "careful")?.hasArgs).toBe(false);
@@ -683,7 +681,7 @@ describe("buildSnippetAutocompleteItems", () => {
 
 	it("label stays a bare ::name — no baked-in pin marker (rendering owns that dynamically)", () => {
 		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".opencode", "snippet"), "careful.md", "---\npinnable: true\n---\nbody");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nbody");
 		const items = buildSnippetAutocompleteItems(cwd, "");
 		expect(items.find((i) => i.value === "careful")?.label).toBe("::careful");
 	});

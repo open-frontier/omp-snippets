@@ -11,31 +11,25 @@
  * package's `README.md`. This comment covers implementation rationale —
  * read it when modifying the code, not when using the feature.
  *
- * ## Three-tier source
+ * ## Two-tier source
  *
  * - `examples/*.md` (bundled with this package) — lowest priority. A
  *   handful of example snippets shipped so `::` has something to
  *   demonstrate out of the box, even in a project with no snippet
  *   directory of its own. Any project-level snippet with the same
  *   name/alias always wins over a bundled one.
- * - `.opencode/snippet/*.md` (project-level, shared with OpenCode's
- *   `opencode-snippets` plugin) — the primary place to add your own
- *   snippets.
- * - `.omp/snippets/*.md` (project-level, omp-only forks/overrides) — for
- *   the rare snippet whose content needs to diverge specifically for omp
- *   (e.g. referencing an omp-specific subagent) without touching the
- *   shared file or affecting OpenCode sessions. A byte-for-byte (or
- *   near-identical) copy in this tier is NOT a fork, it's an unmonitored
- *   duplicate — nothing keeps the two in sync, so the next edit to one and
- *   not the other silently drifts them apart. Only fork a snippet here
- *   when its content genuinely needs to differ.
+ * - `.omp/snippets/*.md` (project-level) — the place to add your own
+ *   snippets, following omp's native `.omp/` project convention (the same
+ *   directory family as `.omp/extensions/`, `.omp/commands/`,
+ *   `.omp/skills/`). Drop a `.md` file in and it's live on your next
+ *   message.
  *
  * ## Why `input`, not `before_agent_start`
  *
  * The upstream plugin rewrites the actual submitted message text: content
  * outside `<prepend>`/`<append>` blocks replaces the `#trigger` inline, and
  * block content is spliced into the visible message (prepend at the top,
- * append at the bottom) — see `.opencode/snippet/reflect.md` etc., whose
+ * append at the bottom) — see `examples/reflect.md`, whose
  * trailing plain-text line ("Reflect on this") is exactly this inline
  * replacement text. That is a visible rewrite of the user's own prompt, not
  * a hidden system note, so it maps to omp's `input` event
@@ -45,7 +39,7 @@
  * `<inject>` blocks are the one part of the upstream schema that IS meant to
  * be hidden context for the whole turn — those are collected separately and
  * delivered via `before_agent_start` as a `display: false` custom message.
- * None of the current `.opencode/snippet/*.md` files use `<inject>`, but the
+ * None of the bundled `examples/*.md` files use `<inject>`, but the
  * plumbing is here for when one does.
  *
  * ## Hot reload
@@ -144,9 +138,9 @@ import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 
 // ============================================================================
-// Snippet registry — .opencode/snippet/*.md (shared with OpenCode) overlaid
-// by .omp/snippets/*.md (omp-only forks/overrides). Reloaded fresh on every
-// trigger match; see "Hot reload" above.
+// Snippet registry — bundled examples/*.md overlaid by the project's
+// .omp/snippets/*.md. Reloaded fresh on every trigger match; see "Hot
+// reload" above.
 // ============================================================================
 
 export interface SnippetDef {
@@ -263,23 +257,21 @@ export function loadSnippetDir(dir: string): Map<string, SnippetDef> {
 }
 
 /** Merges bundled example snippets (shipped alongside this module in
- *  `../examples/`, lowest priority) with `.omp/snippets/*.md` (omp-only
- *  forks) over `.opencode/snippet/*.md` (shared source) — omp-only entries
- *  win on name/alias collision, so a fork like `judge.md` can diverge
- *  without touching the shared file. Bundled examples exist so a
- *  marketplace-installed plugin has something to demonstrate `::` triggers
- *  with out of the box, even in a project with no `.opencode/snippet`
- *  directory of its own — any project-level snippet with the same
- *  name/alias always wins over the bundled one. `loadSnippetDir` returns an
- *  empty registry for a missing directory (not an error), so this is a
- *  no-op when no `examples/` directory ships alongside the module — e.g.
- *  when this file is vendored directly into a project's own
- *  `.omp/extensions/`, as opposed to installed as a marketplace plugin. */
+ *  `../examples/`, lowest priority) under the project's own
+ *  `.omp/snippets/*.md` — project entries win on name/alias collision, so
+ *  any bundled example can be overridden by dropping a same-named file in
+ *  `.omp/snippets/`. Bundled examples exist so a marketplace-installed
+ *  plugin has something to demonstrate `::` triggers with out of the box,
+ *  even in a project with no snippet directory of its own.
+ *  `loadSnippetDir` returns an empty registry for a missing directory (not
+ *  an error), so this is a no-op when no `examples/` directory ships
+ *  alongside the module — e.g. when this file is vendored directly into a
+ *  project's own `.omp/extensions/`, as opposed to installed as a
+ *  marketplace plugin. */
 export function buildSnippetRegistry(cwd: string): Map<string, SnippetDef> {
 	const bundled = loadSnippetDir(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "examples"));
-	const shared = loadSnippetDir(path.join(cwd, ".opencode", "snippet"));
-	const ompOnly = loadSnippetDir(path.join(cwd, ".omp", "snippets"));
-	return new Map([...bundled, ...shared, ...ompOnly]);
+	const project = loadSnippetDir(path.join(cwd, ".omp", "snippets"));
+	return new Map([...bundled, ...project]);
 }
 
 // ============================================================================
