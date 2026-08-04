@@ -1,0 +1,8 @@
+# Snippet bodies are prompt payload sent verbatim to the model. CRLF survives
+# parsing (block/frontmatter regexes are \r?\n-tolerant) but the carriage
+# returns reach the model and make whitespace-only diffs indistinguishable
+# from real drift against the development copy. Pin everything to LF.
+* text=auto eol=lf
+*.md text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
