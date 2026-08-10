@@ -79,11 +79,25 @@ Pins are session-only: they don't persist to disk and don't survive a restart.
 
 `bluf` and `socratic` share the `answer-delivery` exclusivity group — pinning one auto-unpins the other, since no response can both open with the answer and never state it.
 
-These ship so `::` works immediately after install. Override any of them by dropping a same-named `.md` into `.omp/snippets/`.
+These ship so `::` works immediately after install. Override any of them by
+dropping a same-named `.md` into `.omp/snippets/` or `~/.omp/agent/snippets/`.
 
 ## Authoring your own snippets
 
-Drop a `.md` file into `.omp/snippets/` in your project — omp's native project config directory, the same family as `.omp/extensions/`, `.omp/commands/`, and `.omp/skills/`. Files are re-read from disk on every `::` trigger match, so changes take effect on your very next message — no restart needed. Your own snippets always take priority over a bundled example with the same name.
+Two tiers, checked in this order (later wins on name/alias collision):
+
+- **`~/.omp/agent/snippets/`** — personal snippets, available in every
+  project on this machine. Same directory family as `~/.omp/agent/skills/`.
+- **`.omp/snippets/`** — project snippets, checked into the repo and shared
+  with your team. Same family as `.omp/extensions/`, `.omp/commands/`,
+  `.omp/skills/`. Wins over a personal or bundled snippet with the same name.
+
+Files are re-read from disk on every `::` trigger match, so changes take
+effect on your very next message — no restart needed.
+
+Looking for more than the bundled examples? Browse or contribute to
+[`community/`](./community/) — snippets shared by users, copy-paste only
+(not installed automatically; see that folder's README for why).
 
 ```markdown
 ---

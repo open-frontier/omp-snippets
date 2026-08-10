@@ -232,13 +232,13 @@ describe("buildSnippetRegistry", () => {
 	it("loads project snippets from .omp/snippets", () => {
 		const cwd = tempDir();
 		writeSnippet(path.join(cwd, ".omp", "snippets"), "mine.md", "my body");
-		const registry = buildSnippetRegistry(cwd);
+		const registry = buildSnippetRegistry(cwd, tempDir());
 		expect(registry.get("mine")?.raw).toBe("my body");
 	});
 
 	it("a project with no .omp/snippets directory still gets the bundled examples", () => {
 		const cwd = tempDir(); // fresh temp dir, no snippet directory at all
-		const registry = buildSnippetRegistry(cwd);
+		const registry = buildSnippetRegistry(cwd, tempDir());
 		expect(registry.get("careful")?.pinnable).toBe(true);
 		expect(registry.get("concise")?.pinnable).toBe(true);
 		expect(registry.get("explanatory")?.pinnable).toBe(true);
@@ -248,7 +248,7 @@ describe("buildSnippetRegistry", () => {
 	it("a project-level snippet with the same name as a bundled example overrides it", () => {
 		const cwd = tempDir();
 		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nproject-level override");
-		const registry = buildSnippetRegistry(cwd);
+		const registry = buildSnippetRegistry(cwd, tempDir());
 		expect(registry.get("careful")?.raw).toBe("project-level override");
 	});
 
@@ -256,9 +256,40 @@ describe("buildSnippetRegistry", () => {
 		const cwd = tempDir();
 		writeSnippet(path.join(cwd, ".opencode", "snippet"), "opencode-only.md", "should never load");
 		writeSnippet(path.join(cwd, ".opencode", "snippet"), "careful.md", "---\n---\nshould not override bundled");
-		const registry = buildSnippetRegistry(cwd);
+		const registry = buildSnippetRegistry(cwd, tempDir());
 		expect(registry.get("opencode-only")).toBeUndefined();
 		expect(registry.get("careful")?.raw).not.toContain("should not override bundled");
+	});
+
+	it("loads personal snippets from the user's agent dir, available with no project directory at all", () => {
+		const userDir = tempDir();
+		writeSnippet(path.join(userDir, "snippets"), "mine.md", "personal body");
+		const registry = buildSnippetRegistry(tempDir(), userDir);
+		expect(registry.get("mine")?.raw).toBe("personal body");
+	});
+
+	it("a project snippet overrides a user snippet with the same name", () => {
+		const userDir = tempDir();
+		const cwd = tempDir();
+		writeSnippet(path.join(userDir, "snippets"), "shared.md", "user version");
+		writeSnippet(path.join(cwd, ".omp", "snippets"), "shared.md", "project version");
+		const registry = buildSnippetRegistry(cwd, userDir);
+		expect(registry.get("shared")?.raw).toBe("project version");
+	});
+
+	it("a user snippet overrides a bundled example with the same name", () => {
+		const userDir = tempDir();
+		writeSnippet(path.join(userDir, "snippets"), "careful.md", "---\npinnable: true\n---\nuser override");
+		const registry = buildSnippetRegistry(tempDir(), userDir);
+		expect(registry.get("careful")?.raw).toBe("user override");
+	});
+
+	it("defaults userDir to the real user agent dir when not supplied", () => {
+		// Exercises the default-parameter path itself; the real ~/.omp/agent
+		// on the machine running this test has no snippets/ dir, so this only
+		// asserts the call doesn't throw and still returns bundled examples.
+		const registry = buildSnippetRegistry(tempDir());
+		expect(registry.get("careful")).toBeDefined();
 	});
 });
 
@@ -893,7 +924,7 @@ describe("bundled examples", () => {
 	// buildSnippetRegistry resolves examples/ relative to this module's own
 	// file location, so a plain empty temp dir exercises exactly the "fresh
 	// install, no project snippets yet" case a marketplace install lands in.
-	const registry = buildSnippetRegistry(tempDir());
+	const registry = buildSnippetRegistry(tempDir(), tempDir());
 
 	it("loads every bundled examples/*.md file without a parse failure", () => {
 		const examplesDir = path.resolve(import.meta.dir, "../examples");

@@ -135,7 +135,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
+import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 
 // ============================================================================
 // Snippet registry — bundled examples/*.md overlaid by the project's
@@ -257,21 +257,25 @@ export function loadSnippetDir(dir: string): Map<string, SnippetDef> {
 }
 
 /** Merges bundled example snippets (shipped alongside this module in
- *  `../examples/`, lowest priority) under the project's own
- *  `.omp/snippets/*.md` — project entries win on name/alias collision, so
- *  any bundled example can be overridden by dropping a same-named file in
- *  `.omp/snippets/`. Bundled examples exist so a marketplace-installed
- *  plugin has something to demonstrate `::` triggers with out of the box,
- *  even in a project with no snippet directory of its own.
+ *  `../examples/`, lowest priority) with the user's own `~/.omp/agent/snippets/*.md`
+ *  (personal snippets available in every project) under the current
+ *  project's `.omp/snippets/*.md` (highest priority) — later tiers win on
+ *  name/alias collision, so a project can override a personal snippet and a
+ *  personal snippet can override a bundled example. This matches omp's own
+ *  user-then-project precedence for skills and extensions (`getAgentDir()`
+ *  for user scope, `.omp/` for project scope).
  *  `loadSnippetDir` returns an empty registry for a missing directory (not
- *  an error), so this is a no-op when no `examples/` directory ships
- *  alongside the module — e.g. when this file is vendored directly into a
- *  project's own `.omp/extensions/`, as opposed to installed as a
- *  marketplace plugin. */
-export function buildSnippetRegistry(cwd: string): Map<string, SnippetDef> {
+ *  an error), so this is a no-op wherever a tier's directory doesn't exist —
+ *  e.g. `../examples/` when this file is vendored directly into a project's
+ *  own `.omp/extensions/` instead of installed as a marketplace plugin, or
+ *  `~/.omp/agent/snippets/` for a user who has never created one.
+ *  `userDir` defaults to the real user agent dir and is only ever
+ *  overridden in tests. */
+export function buildSnippetRegistry(cwd: string, userDir: string = getAgentDir()): Map<string, SnippetDef> {
 	const bundled = loadSnippetDir(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "examples"));
+	const user = loadSnippetDir(path.join(userDir, "snippets"));
 	const project = loadSnippetDir(path.join(cwd, ".omp", "snippets"));
-	return new Map([...bundled, ...project]);
+	return new Map([...bundled, ...user, ...project]);
 }
 
 // ============================================================================
