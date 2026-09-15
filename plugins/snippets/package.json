@@ -1,6 +1,6 @@
 {
   "name": "omp-snippets",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Composable ::name prompt snippets for omp \u2014 chain, parameterize, and pin reusable instruction fragments; live picker; pin mechanism with exclusivity groups.",
   "license": "MIT",
   "type": "module",
@@ -31,13 +31,14 @@
   "author": "misterdojo777",
   "repository": {
     "type": "git",
-    "url": "https://github.com/misterdojo777/omp-snippets.git",
+    "url": "https://github.com/open-frontier/omp-snippets.git",
     "directory": "plugins/snippets"
   },
-  "homepage": "https://github.com/misterdojo777/omp-snippets",
+  "homepage": "https://github.com/open-frontier/omp-snippets",
   "files": [
     "src/",
     "examples/",
+    "templates/",
     "README.md",
     "THIRD_PARTY_NOTICES.md"
   ]

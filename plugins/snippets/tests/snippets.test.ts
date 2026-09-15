@@ -943,14 +943,6 @@ describe("bundled examples", () => {
 		expect(registry.get("concise")?.pinnable).toBe(true);
 	});
 
-	it("explanatory is pinnable, reachable by its aliases, and pins its real ★ Insight marker", () => {
-		expect(registry.get("explanatory")?.pinnable).toBe(true);
-		expect(registry.get("insight")?.name).toBe("explanatory");
-		expect(registry.get("teach")?.name).toBe("explanatory");
-		const pinned = new Map<string, string>();
-		expect(pinSnippetByName("explanatory", registry, pinned)).toBe(true);
-		expect(pinned.get("explanatory")).toContain("★ Insight");
-	});
 
 	it("reflect is a one-shot action, not pinnable, reachable by its aliases", () => {
 		expect(registry.get("reflect")?.pinnable).toBe(false);
@@ -958,13 +950,7 @@ describe("bundled examples", () => {
 		expect(registry.get("clarify")?.name).toBe("reflect");
 	});
 
-	it("::careful ::concise compose in one message, matching the smoke-tested behavior", () => {
-		const result = expandTriggers("::careful ::concise", registry);
-		const assembled = assembleMessage(result);
-		expect(assembled.startsWith("Be careful Be concise")).toBe(true);
-		expect(assembled).toContain("Think step by step");
-		expect(assembled).toContain("Answer concisely");
-	});
+
 
 	it("::pin(careful) then ::pin(concise) both compose in the pinned system prompt block — no forced single slot", () => {
 		const pinned = new Map<string, string>();

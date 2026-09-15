@@ -7,14 +7,14 @@ This repository is an omp [marketplace](https://github.com/oh-my-pi/pi-coding-ag
 ## Install
 
 ```
-/marketplace add misterdojo777/omp-snippets
+/marketplace add open-frontier/omp-snippets
 /marketplace install snippets@omp-snippets
 ```
 
 Or from the command line:
 
 ```
-omp plugin marketplace add misterdojo777/omp-snippets
+omp plugin marketplace add open-frontier/omp-snippets
 omp plugin install snippets@omp-snippets
 ```
 
@@ -22,8 +22,8 @@ omp plugin install snippets@omp-snippets
 
 - **`::name` / `::name(args)` expansion** — type a trigger inline, anywhere in your prose; it expands to the snippet's instruction.
 - **A live filterable picker** — type `::` to see a dropdown of every available snippet, color-coded by pin state, with `Tab`/`Enter`/arrows/`Escape` navigation.
-- **A pin mechanism** — `::pin(name)` keeps a standing style active for the rest of the session (e.g. "answer concisely"), with a `Right arrow` hotkey in the picker and an opt-in exclusivity `group` for styles that are logically, not just stylistically, incompatible.
-- **4 bundled example snippets** to try immediately: `careful`, `concise`, `explanatory` (pinnable), and `reflect` (one-shot). See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the full catalog, usage guide, and how to author your own.
+- **A pin mechanism** — `::pin(name)` keeps a standing preference active for the session, with a `Right arrow` picker hotkey and opt-in exclusivity groups. Pins are advisory instructions, not tool permissions; see the [pin scope and approval-policy exceptions](./plugins/snippets/README.md#how-pins-reach-the-model).
+- **24 bundled example snippets** to try immediately — including `bugfix`, `chain`, `fanout`, `show`, `careful`, `concise`, and `report`. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the full catalog, usage guide, and how to author your own.
 
 ## Full documentation
 
