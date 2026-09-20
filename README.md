@@ -23,7 +23,7 @@ omp plugin install snippets@omp-snippets
 - **`::name` / `::name(args)` expansion** — type a trigger inline, anywhere in your prose; it expands to the snippet's instruction.
 - **A live filterable picker** — type `::` to see a dropdown of every available snippet, color-coded by pin state, with `Tab`/`Enter`/arrows/`Escape` navigation.
 - **A pin mechanism** — `::pin(name)` keeps a standing preference active for the session, with a `Right arrow` picker hotkey and opt-in exclusivity groups. Pins are advisory instructions, not tool permissions; see the [pin scope and approval-policy exceptions](./plugins/snippets/README.md#how-pins-reach-the-model).
-- **24 bundled example snippets** to try immediately — including `bugfix`, `chain`, `fanout`, `show`, `careful`, `concise`, and `report`. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the full catalog, usage guide, and how to author your own.
+- **25 bundled example snippets** to try immediately — including `bugfix`, `chain`, `fanout`, `show`, `careful`, `concise`, and `report`. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the full catalog, usage guide, and how to author your own.
 
 ## Full documentation
 

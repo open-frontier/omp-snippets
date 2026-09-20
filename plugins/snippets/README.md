@@ -70,6 +70,7 @@ Two pinnable styles are exceptions to the HOW-only framing: `plan-mode` and `con
 | `careful` | Step-by-step reasoning, double-checks work before committing changes, asks clarifying questions on ambiguity. |
 | `concise` | Terse, plain language, no fluff or hedging. |
 | `confirm-first` | Proposes the smallest change, explains it, then waits for explicit approval before editing files, installing packages, or running nontrivial commands/tests. Read-only inspection stays allowed throughout. |
+| `direct-evidence` | Never opens with agreement or praise. Changes a position only for new evidence or a new argument, saying which. Recommendations carry a fixed shape — Recommendation, Confidence (high/medium/low), Evidence, Strongest objection. Says "I don't know" or "Unverified" when that is true. |
 | `explanatory` | Completes the task as normal, but adds boxed `★ Insight ─...─` asides (2-3 codebase-specific educational points) near the relevant code — mirrors Claude Code's "Explanatory" output style. |
 | `informative` | Opposite of `concise`: thorough reasoning, surfaced context and tradeoffs, completeness over brevity. |
 | `max-chars` | Hard character cap per response (`::pin(max-chars(280))`, defaults to 280 if no number given); trims elaboration first, never correctness or a requested deliverable. |
@@ -118,6 +119,7 @@ Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not 
 | `chain` | `pipe`, `then` | no | Run the following as an ordered pipeline; thread each step's result into the next, delegating read-only steps to subagents |
 | `concise` | — | yes | Terse, no fluff, no hedging |
 | `confirm-first` | `confirm`, `approval-first` | yes | Propose the smallest change and wait for approval before changes or nontrivial commands |
+| `direct-evidence` | `evidence-first`, `no-praise` | yes | No opening agreement/praise; change a position only for new evidence; label recommendations with confidence and strongest objection; admit unknowns |
 | `drift` | — | no | Compare original intent vs. actual result; verdict + smallest fix |
 | `explain_fix` | `xf`, `explain-fix` | no | Explain root cause and propose concrete fixes |
 | `explanatory` | `insight`, `insights`, `teach` | yes | Adds `★ Insight` educational asides alongside the work |
