@@ -6,8 +6,6 @@ This repository is an omp [marketplace](https://github.com/oh-my-pi/pi-coding-ag
 
 ## Demo
 
-Recorded with [VHS](https://github.com/charmbracelet/vhs) in a fresh, isolated omp session with the plugin installed from this checkout. The plugin's behavior is real; the model is a scripted local stand-in (no LLM), whose replies are computed from the request omp actually sent, so they show what the plugin delivered. The demos show `0.6.0`.
-
 **Picker, inline expansion, and pins**
 
 ![The :: picker, pinning a style, and inline expansion](./docs/demo/hero.gif)
