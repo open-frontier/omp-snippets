@@ -1,2 +1,7 @@
 node_modules/
 *.log
+
+# VHS demo tooling (tapes, scripted provider, recorder) stays local; only the
+# rendered GIFs embedded in the root README are tracked.
+docs/demo/*
+!docs/demo/*.gif

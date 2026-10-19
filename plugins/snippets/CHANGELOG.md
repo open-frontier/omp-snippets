@@ -1,9 +1,6 @@
 # Changelog
 
-## [0.6.0] — unreleased
-
-Release candidate for `0.6.0`. This entry is not a published or tagged
-release; a release date is recorded only when the version is actually cut.
+## [0.6.0] — 2026-10-19
 
 ### Added
 

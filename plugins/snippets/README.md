@@ -96,7 +96,7 @@ Presentation styles are opt-in. The plugin does not create or modify `APPEND_SYS
 
 Every turn, `before_agent_start` wraps all currently-pinned content into one `<pinned-styles>` block and appends it to the system prompt — nothing is engine-persisted; the extension rebuilds this from its own pin map on every single call, from scratch. The block opens with a fixed preamble that scopes what a pin is allowed to influence:
 
-> These are session-scoped presentation preferences the user explicitly turned on via `::pin`. They govern HOW you phrase, format, and size responses — never WHAT you must verify, complete, or ship. Every contract, completeness, and yielding requirement defined earlier in this prompt remains fully in force regardless of any preference below.
+> The following are session-scoped presentation preferences the user explicitly turned on via `::pin`. They govern HOW you phrase, format, and size responses — never WHAT you must verify, complete, or ship. Every contract, completeness, and yielding requirement defined earlier in this prompt remains fully in force regardless of any preference below.
 
 That's why pinning `concise` can't be used to quietly skip verification, or `max-chars` to truncate a correctness-relevant detail — the preamble draws that line once, at the mechanism level, so individual snippet bodies don't each have to restate it.
 
@@ -155,7 +155,7 @@ A snippet marked `kind: role` is a standing **operational role** for the main co
 
 ### What a role does to the prompt
 
-The active role is delivered every turn as its own `<operational-role name="...">` block appended to the system prompt **after** the `<pinned-styles>` block — the incoming native system prompt is left untouched. Selection and clear add only a short history confirmation — `(role: <name>)`, `(role cleared)`, or `(no role active)`; on a host without agent identity a role action records `(role unavailable)` instead. The role body itself is never copied into your message. Nested ordinary `::snippets` in the role body are expanded when the snapshot is taken; nested role references stay literal.
+The active role is delivered every turn as its own `<operational-role name="...">` block appended to the system prompt **after** the `<pinned-styles>` block — the incoming native system prompt is left untouched. Selection and clear add only a short history confirmation — `(role: <name>)`, `(role cleared)`, or `(no role active)`; on a host without agent identity, or in a subagent session, a role action records `(role unavailable)` instead. The role body itself is never copied into your message. Nested ordinary `::snippets` in the role body are expanded when the snapshot is taken; nested role references stay literal.
 
 The role block opens with a fixed preamble that scopes it: a role assigns operational responsibilities and boundaries, but it **never** overrides native instructions, safety rules, approval gates, completion requirements, or an enforced Plan/Execute mode, and it is not a subagent identity, a delegation grant, or a permission grant. Switching or clearing removes the role body from subsequent turns — there is no promise that already-generated history or model repeats are erased.
 
@@ -212,7 +212,7 @@ Bottom line: reach for a slash command when you're deliberately invoking a whole
 
 `chain`, `fanout`, `subagent`, and `bugfix` ask the model to use the current host's delegation tools. They do not implement scheduling, retries, durable execution, or tool permissions. `show` controls presentation; drawing a workflow does not execute it.
 
-Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not this plugin. The repo-local recipes are not installed with the snippets package. Native `workflowz` activation alongside snippet expansion has not yet been integration-verified; this release does not add a `::workflowz` alias or a Mastra bridge.
+Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not this plugin, and none ship in this repository. Native `workflowz` activation alongside snippet expansion has not yet been integration-verified; this release does not add a `::workflowz` alias or a Mastra bridge.
 
 ## Bundled examples
 
@@ -381,7 +381,7 @@ Editing the extension **code** (`src/snippets.ts`) is not hot-reloaded: omp load
 omp -e /absolute/path/to/omp-snippets/plugins/snippets/src/snippets.ts
 ```
 
-`-e`/`--extension` loads an extension file and is repeatable. A session started with `-e <checkout>/plugins/snippets/src/snippets.ts` runs that checkout's source; a session without it runs the installed copy — the version recorded in `~/.omp/plugins/installed_plugins.json` (this environment: `0.5.0`, loaded from `~/.omp/plugins/cache/plugins/`). The two are independent targets: loading a checkout changes only that process, and restarting or reloading a session keeps loading whatever target it started with — a reload does not switch a session from the installed copy to the checkout (or back). Only an explicit install/upgrade (`/marketplace upgrade`, `omp plugin install`) changes the installed copy — a running session never auto-upgrades it.
+`-e`/`--extension` loads an extension file and is repeatable. A session started with `-e <checkout>/plugins/snippets/src/snippets.ts` runs that checkout's source; a session without it runs the installed copy — the version recorded in `~/.omp/plugins/installed_plugins.json`, whose `installPath` lies under `~/.omp/plugins/cache/plugins/`. The two are independent targets: loading a checkout changes only that process, and restarting or reloading a session keeps loading whatever target it started with — a reload does not switch a session from the installed copy to the checkout (or back). Only an explicit install/upgrade (`/marketplace upgrade`, `omp plugin install`) changes the installed copy — a running session never auto-upgrades it.
 
 After this Q&A rename, restart a checkout-backed session before testing and re-pin the styles you want. Hot-reloading the Markdown alone cannot teach an older loaded extension the new `&` and phrase syntax. Pins remain process-local; no startup pin preset or automatic installed-package upgrade is added.
 
