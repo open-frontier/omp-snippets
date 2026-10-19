@@ -20,6 +20,24 @@ parens (like this) and all — no escaping needed.
 
 Typing `::` opens a live filterable picker below the editor — you don't need to memorize names. Keep typing to filter, `Tab`/`Enter` to accept, `↑`/`↓` to cycle, `Escape` to cancel. A role snippet (`kind: role`) is selected the same way but takes effect on submit: accepting the row inserts `::role-name`, and submitting the message selects that role (see [Roles](#roles--role-name-and-unrole)).
 
+## Snippet, pin, or role?
+
+Every `::` trigger is one of three kinds:
+
+| | Snippet | Pin | Role |
+|---|---|---|---|
+| Use for | A one-off instruction | A standing style or policy | A standing operational assignment |
+| Activate | `::name` or `::name(args)` | `::pin(name)`, `::unpin(name)`, or `Right` in the picker | Bare `::name`; `::unrole` clears |
+| Lasts | That message | Every turn until unpinned; this process only | Every turn until cleared; saved in the session and restored on resume/branch |
+| How many | Any number per message | Any number (`group` members replace each other) | One at a time |
+| Arguments | Yes | Yes | No |
+| Reaches the model as | Expanded text in your message | `<pinned-styles>` in the system prompt | `<operational-role>` in the system prompt |
+| Enforced | No | No, except `q&a`, which blocks non-read-only tool calls | No; never overrides safety, approvals, or Plan mode |
+| Defined by | Any snippet file | `pinnable: true` | `kind: role` |
+| Bundled examples | `reflect`, `verify`, `subagent` | `concise`, `careful`, `bluf`, `q&a` | None; write your own |
+
+Details: [Pins](#pins--pinname--unpinname--pins), [Roles](#roles--role-name-and-unrole), [Q&A-only guard](#qa-only-guard-guard-qa). Slash commands and skills are compared [below](#snippets-vs-skills-vs-slash-commands).
+
 ## Arguments — `::name(args)` vs `::name<<...>>`
 
 Two ways to bind `$1`/`$2`/`$@`/`$ARGUMENTS` in a snippet body:

@@ -36,6 +36,22 @@ omp plugin install snippets@omp-snippets
 - **Roles** — a snippet marked `kind: role` is a standing operational role for the main conversation: type its bare name (`::release-captain`) to select or refresh it, `::unrole` to clear it. Roles are separate from pinned presentation styles, apply only to the main agent, and persist across resume and branch via a native session entry. Role selection takes a bare name only; an argument wrapper such as `::release-captain(args)` or `::release-captain<<...>>` is unsupported. A wrapper recognized for a selectable real role stays literal and inert in the text where it is recognized, rather than activating anything. This is phase-local protection, not cross-phase quoting: separately generated role-head/opener text does not undo an expansion already completed earlier. Existing bracket-first expansion and `::pins`/`::unpin`/`::pin` preprocessing order is unchanged.
 - **26 bundled examples** — output styles, behavioral pins, and one-shot actions, including `bluf-insight` for BLUF plus useful `★ Insight` asides. No generic reviewer/researcher roles ship; use native subagents for delegated specialist work. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the catalog and authoring guide.
 
+## Snippet, pin, or role?
+
+Every `::` trigger is one of three kinds. Unlike a `/slash` command (first token only, one per message), all of them work inline, anywhere in your prose; see [snippets vs. skills vs. slash commands](./plugins/snippets/README.md#snippets-vs-skills-vs-slash-commands).
+
+| | Snippet | Pin | Role |
+|---|---|---|---|
+| Use for | A one-off instruction | A standing style or policy | A standing operational assignment |
+| Activate | `::name` or `::name(args)` | `::pin(name)`, `::unpin(name)`, or `Right` in the picker | Bare `::name`; `::unrole` clears |
+| Lasts | That message | Every turn until unpinned; this process only | Every turn until cleared; saved in the session |
+| How many | Any number per message | Any number (`group` members replace each other) | One at a time |
+| Arguments | Yes | Yes | No |
+| Reaches the model as | Expanded text in your message | `<pinned-styles>` in the system prompt | `<operational-role>` in the system prompt |
+| Enforced | No | No, except `q&a`, which blocks non-read-only tool calls | No; never overrides safety, approvals, or Plan mode |
+| Defined by | Any snippet file | `pinnable: true` | `kind: role` |
+| Bundled examples | `reflect`, `verify`, `subagent` | `concise`, `careful`, `bluf`, `q&a` | None; write your own |
+
 ## Full documentation
 
 See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for usage details, the pin mechanism, the live picker, and the authoring guide for writing your own snippets.
