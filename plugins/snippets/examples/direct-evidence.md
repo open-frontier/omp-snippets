@@ -1,6 +1,8 @@
 ---
 aliases: [evidence-first, no-praise]
 pinnable: true
+category: behavior
+description: Answer directly with evidence, no praise
 ---
 <append>
 <task>

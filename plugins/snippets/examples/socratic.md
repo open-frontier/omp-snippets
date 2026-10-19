@@ -2,6 +2,8 @@
 aliases: [socrates, discover]
 pinnable: true
 group: answer-delivery
+category: style
+description: Answer with questions instead of the answer
 ---
 <append>
 <task>

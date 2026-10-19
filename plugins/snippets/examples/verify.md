@@ -1,5 +1,6 @@
 ---
 aliases: verify
+description: Re-check each claim against concrete evidence
 ---
 <append>
 <task>

@@ -1,6 +1,8 @@
 ---
 aliases: concise
 pinnable: true
+category: style
+description: Answer concisely in plain language, no fluff
 ---
 <append>
 <task>

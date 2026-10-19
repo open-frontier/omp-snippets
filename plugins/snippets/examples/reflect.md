@@ -1,5 +1,6 @@
 ---
 aliases: [reframe, reflect, reformulate, clarify]
+description: Reflect on intent, then reformulate it clearly
 ---
 <append>
 <task>

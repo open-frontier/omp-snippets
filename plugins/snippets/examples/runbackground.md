@@ -1,9 +1,10 @@
 ---
 aliases: runbackground
+description: Run this task in a background subagent
 ---
 <append>
 <task>
-Run this task inside a background agent. Pick the most suitable subagent type. Use `background: true` on the task tool invocation. Report the task_id back so we can poll status later.
+Run this task in the background with the native task tool: pick the most suitable subagent type, dispatch a single `task` entry, and report the handle it returns so the result can be collected later.
 </task>
 </append>
 

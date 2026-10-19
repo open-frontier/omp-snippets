@@ -1,5 +1,6 @@
 ---
 aliases: drift
+description: Compare intended versus actual outcome for drift
 ---
 <append>
 <task>

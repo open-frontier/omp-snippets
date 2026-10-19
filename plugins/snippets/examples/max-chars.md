@@ -1,6 +1,8 @@
 ---
 aliases: [char-limit, maxchars]
 pinnable: true
+category: style
+description: Hard-cap every response at a set character limit
 ---
 <append>
 <task>

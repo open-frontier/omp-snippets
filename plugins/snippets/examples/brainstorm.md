@@ -1,5 +1,6 @@
 ---
 aliases: brainstorm
+description: Brainstorm options and tradeoffs until a decision
 ---
 <append>
 <task>

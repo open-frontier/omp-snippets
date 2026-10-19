@@ -1,5 +1,6 @@
 ---
 aliases: [sidetrack, side, quick-thought]
+description: Take a brief detour, then return to the topic
 ---
 <append>
 <task>

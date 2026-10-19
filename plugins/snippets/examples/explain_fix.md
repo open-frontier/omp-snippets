@@ -1,5 +1,6 @@
 ---
 aliases: [xf, explain-fix]
+description: Explain the issue and propose concrete fixes
 ---
 <append>
 <task>

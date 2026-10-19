@@ -1,5 +1,6 @@
 ---
 aliases: tradeoff
+description: Give a balanced advantages/disadvantages analysis
 ---
 <append>
 <task>

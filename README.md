@@ -21,9 +21,10 @@ omp plugin install snippets@omp-snippets
 ## What you get
 
 - **`::name` / `::name(args)` expansion** — type a trigger inline, anywhere in your prose; it expands to the snippet's instruction.
-- **A live filterable picker** — type `::` to see a dropdown of every available snippet, color-coded by pin state, with `Tab`/`Enter`/arrows/`Escape` navigation.
-- **A pin mechanism** — `::pin(name)` keeps a standing preference active for the session, with a `Right arrow` picker hotkey and opt-in exclusivity groups. Pins are advisory instructions, not tool permissions; see the [pin scope and approval-policy exceptions](./plugins/snippets/README.md#how-pins-reach-the-model).
-- **25 bundled example snippets** to try immediately — including `bugfix`, `chain`, `fanout`, `show`, `careful`, `concise`, and `report`. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the full catalog, usage guide, and how to author your own.
+- **A live filterable picker** — type `::` to browse role-like rows first, then other pinnables, then ordinary one-shot snippets, with `Tab`/`Enter`/arrows/`Escape` navigation. Role-like names (including the guarded `q&a` pin) are purple; other pinnable names are green; ordinary names and descriptions retain the normal foreground. Names and one-line descriptions share aligned columns, descriptions are capped at 60 characters, and pinnables keep their checkbox/pin mark.
+- **A pin mechanism** — `::pin(name)` keeps a standing preference active for the session, with a `Right arrow` picker hotkey and opt-in exclusivity groups. Pins are advisory except **Q&A**: `::pin(qa)` blocks non-read-only tool calls until `::unpin(qa)`. The bundled Q&A aliases (`qa`, `QA`, `question and answer`, `ask-mode`, `plan-mode`, `planning`) resolve to one stable pin entry, so pinning or unpinning through any of them addresses the same snapshot. It is independent of native `/plan` and approval settings. See the [Q&A-only guard](./plugins/snippets/README.md#qa-only-guard-guard-qa).
+- **Roles** — a snippet marked `kind: role` is a standing operational role for the main conversation: type its bare name (`::release-captain`) to select or refresh it, `::unrole` to clear it. Roles are separate from pinned presentation styles, apply only to the main agent, and persist across resume and branch via a native session entry. Role selection takes a bare name only; an argument wrapper such as `::release-captain(args)` or `::release-captain<<...>>` is unsupported. A wrapper recognized for a selectable real role stays literal and inert in the text where it is recognized, rather than activating anything. This is phase-local protection, not cross-phase quoting: separately generated role-head/opener text does not undo an expansion already completed earlier. Existing bracket-first expansion and `::pins`/`::unpin`/`::pin` preprocessing order is unchanged.
+- **26 bundled examples** — output styles, behavioral pins, and one-shot actions, including `bluf-insight` for BLUF plus useful `★ Insight` asides. No generic reviewer/researcher roles ship; use native subagents for delegated specialist work. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the catalog and authoring guide.
 
 ## Full documentation
 
@@ -31,6 +32,4 @@ See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for usage detai
 
 ## License
 
-MIT — see [LICENSE](./LICENSE). This project incorporates portions of other
-MIT-licensed software; see [`plugins/snippets/THIRD_PARTY_NOTICES.md`](./plugins/snippets/THIRD_PARTY_NOTICES.md)
-for the specific code regions and upstream copyright notices those regions require retaining.
+MIT — see [LICENSE](./LICENSE). The plugin package carries its own copy at [`plugins/snippets/LICENSE`](./plugins/snippets/LICENSE), because the package archive does not include the repository root. This project incorporates portions of other MIT-licensed software; see [`plugins/snippets/THIRD_PARTY_NOTICES.md`](./plugins/snippets/THIRD_PARTY_NOTICES.md) for the specific code regions and upstream copyright notices those regions require retaining.

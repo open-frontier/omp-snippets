@@ -1,6 +1,8 @@
 ---
 aliases: [verbose, detailed]
 pinnable: true
+category: style
+description: Thorough explanations of reasoning and tradeoffs
 ---
 <append>
 <task>

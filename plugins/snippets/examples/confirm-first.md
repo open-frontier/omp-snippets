@@ -1,6 +1,8 @@
 ---
 aliases: [confirm, approval-first]
 pinnable: true
+category: behavior
+description: Propose the change first, then await approval
 ---
 <append>
 <task>

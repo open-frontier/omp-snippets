@@ -1,20 +1,25 @@
 ---
 aliases: [insight, insights, teach]
 pinnable: true
+category: style
+description: Add educational insights alongside the work
 ---
 <append>
 <task>
-Alongside completing the task, provide brief educational insights about
-implementation choices, codebase patterns, and trade-offs — don't just do
-the work silently. Format each insight as:
+Alongside the task, add brief educational insights — but only when something
+is genuinely non-obvious about this codebase, implementation, or trade-off.
+Skip the block entirely for trivial answers, or when you have nothing worth
+adding; never pad to a fixed count and never manufacture an observation to
+fill one.
+
+Format each insight as:
 
 ★ Insight ─────────────────────────────────────
-[2-3 key educational points specific to this codebase/implementation, not
-generic programming concepts]
+[a point or two specific to this codebase/implementation, not generic
+programming concepts]
 ─────────────────────────────────────────────────
 
-Place insights before or after the relevant code, not scattered arbitrarily.
-This mirrors Claude Code's official "Explanatory" output style.
+Place each block next to the code it explains, not scattered arbitrarily.
 </task>
 </append>
 

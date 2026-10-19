@@ -1,6 +1,8 @@
 ---
 aliases: safe
 pinnable: true
+category: behavior
+description: Think step by step and double-check changes
 ---
 <append>
 <task>

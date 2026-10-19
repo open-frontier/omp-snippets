@@ -1,6 +1,8 @@
 ---
 aliases: jedi
 pinnable: true
+category: style
+description: Speak like Yoda with inverted word order
 ---
 <append>
 <task>
