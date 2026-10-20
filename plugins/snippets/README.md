@@ -18,7 +18,7 @@ parens (like this) and all — no escaping needed.
 >>
 ```
 
-Typing `::` opens a live filterable picker below the editor — you don't need to memorize names. Keep typing to filter, `Tab`/`Enter` to accept, `↑`/`↓` to cycle, `Escape` to cancel. A role snippet (`kind: role`) is selected the same way but takes effect on submit: accepting the row inserts `::role-name`, and submitting the message selects that role (see [Roles](#roles--role-name-and-unrole)).
+Typing `::` opens a live filterable picker below the editor — you don't need to memorize names. Keep typing to filter, `↑`/`↓` to cycle, `Tab` to insert the highlighted trigger, `Escape` to cancel. `Enter` acts on the row: it toggles a pinnable row's pin, selects a role row immediately (or clears it when it is already active), and inserts an ordinary snippet like `Tab` (see [Roles](#roles--role-name-and-unrole)).
 
 ## Snippet, pin, or role?
 
@@ -27,7 +27,7 @@ Every `::` trigger is one of three kinds:
 | | Snippet | Pin | Role |
 |---|---|---|---|
 | Use for | A one-off instruction | A standing style or policy | A standing operational assignment |
-| Activate | `::name` or `::name(args)` | `::pin(name)`, `::unpin(name)`, or `Right` in the picker | Bare `::name`; `::unrole` clears |
+| Activate | `::name` or `::name(args)` | `::pin(name)`, `::unpin(name)`, or `Enter`/`Right` in the picker | Bare `::name` or `Enter` in the picker; `::unrole` clears |
 | Lasts | That message | Every turn until unpinned; this process only | Every turn until cleared; saved in the session and restored on resume/branch |
 | How many | Any number per message | Any number (`group` members replace each other) | One at a time |
 | Arguments | Yes | Yes | No |
@@ -56,10 +56,11 @@ Roles are the one exception to both forms: `::role-name(args)` and `::role-name<
 ## Live picker
 
 - Rows share an aligned name column, a three-space gap, and a one-line description capped at 60 code points. Narrow terminals shorten the columns without wrapping. Role-like names (real roles and `category: role` pins such as `q&a`) are fixed purple; other pinnable names are theme green; ordinary names and all descriptions retain the normal foreground. Pinnables show `☐` when inactive and `📌` when pinned. The selected row keeps its colors beside an accent caret. Categories are conveyed by ordering, not text badges.
-- **Right arrow** on a highlighted pinnable row toggles its pin state in place — no text inserted, picker stays open. Excluded from the hotkey: parameterized pinnable snippets with an unbound `$1`/`$@`/`$ARGUMENTS` — there's no argument value to bind from a keypress, so those stay `::pin(name(args))` text-only.
+- **Enter** or **Right arrow** on a highlighted pinnable row toggles its pin state in place — no text inserted, picker stays open. A parameterized pinnable (`max-chars`, `show`, `ste100`) pins with its argument blank, exactly like `::pin(name)`, so its documented default applies; type `::pin(name(args))` for any other value. Use `Tab` to insert a pinnable as a one-shot trigger instead.
+- **Enter** on a role row selects that role immediately, without sending a message; `Enter` on the active role clears it. The `Role: <name>` status line confirms the change. `Tab` inserts `::role-name` instead, which selects the role when you submit.
 - Rows group in three tiers, role-like rows first: real `kind: role` roles together with pinnable rows tagged `category: role`, then every other pinnable row (output styles and behavioral pins alike), then ordinary non-pinnable one-shot snippets — in every pin state and under both an empty and a typed query. Within a tier the order is category-first when the query is empty — Styles, then any other named categories alphabetically, then uncategorized snippets last — with the active row (the selected role or a pinned snippet) leading inside its category, then alphabetical. A typed query stays relevance-first inside its tier. Merely-pinnable-but-inactive snippets get no positional privilege within the pinnable tier — an unrelated active pin never buries a better match. See [Categories and picker ordering](#categories-and-picker-ordering).
 - A status-bar line (`📌 name, name`) mirrors the pinned set at all times, not just while the picker is open.
-- A muted hint line below the rows describes the highlighted row, since `Tab`/`Enter` only ever inserts text: `→ right arrow to toggle pin` for a pinnable row, `→ conversation role · send to select` for a role row (or `→ active conversation role · send to refresh` when it is already the active role). It appears after the `(n/total)` counter when the list overflows.
+- A muted hint line below the rows describes the highlighted row's keys: `→ enter / right arrow to toggle pin · tab to insert` for a pinnable row, `→ conversation role · enter to select · tab to insert` for a role row (or `→ active conversation role · enter to clear · tab to insert` when it is already the active role). It appears after the `(n/total)` counter when the list overflows.
 
 ## Categories and picker ordering
 
@@ -84,7 +85,7 @@ kind: role          # operational conversation role, not a display category
 
 - **Unqueried**, rows split into three tiers, role-like first: real `kind: role` roles together with role-categorized pins, then every other pinnable row (styles and behavioral pins alike), then ordinary non-pinnable snippets. Within a tier the order is Styles, then other named categories alphabetically, then uncategorized snippets last — the role-like bucket is its own leading tier, so it never mixes with the pinnable tier; inside a category the active row (pinned snippet or active role) leads, then everything else alphabetically.
 - **While filtering**, rows keep the same three role-like/pinnable/ordinary tiers; within a tier relevance ranks first — exact match, then prefix, then substring (aliases count) — then category, then active state, then alphabetically. Within a tier, an unrelated active pin cannot bury an exact match (a better match in a higher tier still leads).
-- Right-arrow still toggles pins only (real `kind: role` roles are never pinnable; a role-*categorized* pin toggles like any other), and toggling never re-sorts the list, so the highlighted row stays put.
+- Enter and Right arrow toggle pins (real `kind: role` roles are never pinnable — Enter selects or clears them instead; a role-*categorized* pin toggles like any other), and toggling never re-sorts the list, so the highlighted row stays put.
 
 This ordering intentionally replaces the older "pinned items float to the top" rule: the tier key is *role-like* (a real role, or a pin tagged `category: role`), then *pinnable* (the row can be pinned), not *pinned* (it currently is).
 
@@ -140,10 +141,10 @@ The enforcement block reads:
   `Q&A-only guard active (pinned: <names>): <what> is blocked until the user unpins (::unpin(a) / ::unpin(b)). Allowed: read, grep, glob, web_search, ask, todo, wait; read-only lsp queries.`
 
   where `<what>` is `tool "<name>"` — with `(action "<a>")` or `(route "<r>")` appended where relevant, e.g. `tool "lsp" (action "rename")` or `tool "write" (route "xd://recall")` — or `spawn "<name>"` for a blocked subagent spawn.
-- **Explicit pin only.** A bare `::qa` is a one-shot prompt and does **not** engage the guard; enforcement begins with `::pin(qa)` or the picker's Right arrow. Prose approval — "go ahead", "yes", "proceed" — never releases it. Exit with `::unpin(qa)` or any alias of the same pin.
+- **Explicit pin only.** A bare `::qa` is a one-shot prompt and does **not** engage the guard; enforcement begins with `::pin(qa)` or the picker's Enter/Right arrow. Prose approval — "go ahead", "yes", "proceed" — never releases it. Exit with `::unpin(qa)` or any alias of the same pin.
 - **Same lifetime as the pin.** The guard is snapshotted at activation. Editing the definition or refreshing a pin after its `guard` metadata was removed cannot downgrade an active guard; the activation gate still applies to refreshes. Explicit canonical unpinning remains available even if the definition disappears or a shorter registered name survives. Unpinning, group replacement, and the Right-arrow toggle update the same pin map, with no separate guard state to drift. Pins survive a same-process `/new`, but a restart clears them.
 - **No approval-mode override.** The guard blocks regardless of a global yolo/auto-approve setting or an explicit in-message tool allow. It writes nothing to `tools.approvalMode` and never toggles native Plan/Execute mode; after you unpin, the native approval requirements are untouched — unpinning does not weaken them.
-- **Activation is refused, not queued.** Pinning Q&A while the agent is working or owns running background jobs is rejected without changing state. The inline confirmation and Right-arrow warning explain whether to wait for the agent to become idle or for its jobs to finish. Hosts without readable idle/job-state APIs also refuse activation rather than assuming safety. Ordinary pins are unaffected.
+- **Activation is refused, not queued.** Pinning Q&A while the agent is working or owns running background jobs is rejected without changing state. The inline confirmation and the picker-toggle warning explain whether to wait for the agent to become idle or for its jobs to finish. Hosts without readable idle/job-state APIs also refuse activation rather than assuming safety. Ordinary pins are unaffected.
 - **Scope — tool interception, not a sandbox.** This is host tool interception, not OS or filesystem containment: it cannot stop user-initiated `!` shell / `$` Python, native non-tool commands, external processes, or other OMP sessions, and higher-priority system instructions remain unaffected. See [Known limitations](#known-limitations).
 
 ### Pin categories
@@ -163,13 +164,13 @@ A snippet marked `kind: role` is a standing **operational role** for the main co
 ::unrole              # clears the active role
 ```
 
-- **Set/refresh, never a toggle.** Submitting the same bare name again re-selects the role from the file on disk, picking up edits. Aliases resolve like any other snippet, through the effective canonical definition described under [Authoring your own snippets](#authoring-your-own-snippets). Exactly one role is active at a time; selecting another replaces it. Role actions are processed left to right in the submitted text — the last valid role or clear wins.
+- **Set/refresh when submitted.** Submitting the same bare name again re-selects the role from the file on disk, picking up edits (the picker's `Enter` is the one toggle; see *Via the picker* below). Aliases resolve like any other snippet, through the effective canonical definition described under [Authoring your own snippets](#authoring-your-own-snippets). Exactly one role is active at a time; selecting another replaces it. Role actions are processed left to right in the submitted text — the last valid role or clear wins.
 - **`::unrole`** is a reserved exact trigger that clears the active role (`::unrole-extra` is an ordinary snippet name, not reserved). `unrole`, `pin`, `unpin`, and `pins` are reserved trigger names. A role whose canonical name is one of them is never selectable — not under its own name, and not through any of its aliases — and stays out of the picker rather than offering a row that always refuses. The reserved check is case-insensitive, like every other trigger name.
 - **Bare names only.** `::role-name(args)` and `::role-name<<...>>` are unsupported forms: they never activate a role. A wrapper recognized for a selectable real role remains literal in the text being processed; this phase-local protection does not undo an earlier expansion if later, separately generated text forms only the role head/opener (see the Arguments section above). A recognized span protects the wrapper through the role pass, the pin pass, both expansion passes, and every recursive rescan, with an unclosed span running to the end of the text. Contents such as `::pin(...)`/`::unpin(...)`, an ordinary `::snippet`, or nested role-like text stay inert and produce no injected material, and a role-headed bracket chain feeds no ordinary sibling. Only top-level submitted text counts — a `::role-name` inside a snippet body, inside a `<<...>>` argument, inside another trigger's `(...)`, or in a `::a::b<<x>>` chain stays inert, and a bare `::role-name` there is likewise not a selection. The predicate is a selectable definition's actual `kind: role`, not the display-only `category: role` label; reserved `::pin(...)`/`::unpin(...)`/`::pins` controls and valid commands outside the span still execute.
-- **Not a normal expansion target.** A role never expands inline as a one-shot snippet, is not eligible for `::pin` or the picker's Right-arrow pin hotkey (even when referenced from inside another snippet), and cannot carry an exclusivity `group`.
+- **Not a normal expansion target.** A role never expands inline as a one-shot snippet, is not eligible for `::pin` or the picker's pin toggle (even when referenced from inside another snippet), and cannot carry an exclusivity `group`.
 - **Invalid definitions are diagnosed, not fatal.** Problems surface as one `Snippet definition problems:` warning per session, listing `name: problem` lines; a `pinnable` or `group` on a role is ignored with a diagnostic, an empty role body or malformed block tags hides the role from the picker and refuses it at selection, and an unknown `kind:` value is diagnosed and treated as an ordinary snippet. Unrelated snippets keep loading.
 - **Status.** A persistent `Role: <name>` indicator in the status bar shows the active role, separate from the `📌` pin line.
-- **Via the picker.** Role-like rows lead the list (the first tier, shared with role-categorized pins — see [Categories and picker ordering](#categories-and-picker-ordering)); `Tab`/`Enter` inserts the `::role-name` text into your message without activating it — selection happens when you submit the message, not when you accept the row (the picker's hint line reads `send to select`, or `send to refresh` when that role is already active).
+- **Via the picker.** Role-like rows lead the list (the first tier, shared with role-categorized pins — see [Categories and picker ordering](#categories-and-picker-ordering)). `Enter` selects the highlighted role immediately, or clears it when it is already active; the selection is written to the session like a submitted `::role-name`, but adds no history confirmation — the `Role: <name>` status line is the confirmation. `Tab` inserts the `::role-name` text instead, and selection then happens when you submit the message.
 
 ### What a role does to the prompt
 
@@ -249,6 +250,7 @@ Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not 
 | `explain_fix` | `xf`, `explain-fix` | One-shot | Explain root cause and propose concrete fixes |
 | `explanatory` | `insight`, `insights`, `teach` | Style pin | Add educational `★ Insight` asides only where useful |
 | `fanout` | `parallel`, `scatter` | One-shot | Batch independent read-only subagents and join their findings |
+| `html` | `webpage`, `html-page`, `page` | Style pin | Deliver the answer as one self-contained, offline HTML file |
 | `informative` | `verbose`, `detailed` | Style pin | Explain context, reasoning, and tradeoffs thoroughly |
 | `max-chars` | `char-limit`, `maxchars` | Style pin | Cap response length: `::pin(max-chars(280))` |
 | `q&a` | `qa` / `QA`, `question and answer`, `ask-mode`, `plan-mode`, `planning` | Guarded pin | Stay read-only while pinned; explicitly unpin to allow changes |
@@ -258,6 +260,7 @@ Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not 
 | `show` | `visualize`, `viz` | Style pin | Present a grounded diagram, pseudocode, calltree, diff, or HTML view |
 | `sidetrack` | `side`, `quick-thought` | One-shot | Take a brief detour, then return to the prior topic |
 | `socratic` | `socrates`, `discover` | Style pin | Lead with questions rather than giving the answer directly |
+| `ste100` | `aircraft`, `aircraft-manual`, `asd-ste100`, `controlled-language` | Style pin | Write in ASD-STE100 aerospace maintenance style, about 80% by default |
 | `subagent` | `delegate` | One-shot | Delegate the supplied `$1` task off the main thread |
 | `tradeoff` | — | One-shot | Weigh advantages, disadvantages, and a verdict |
 | `verify` | — | One-shot | Re-check the last claim against real evidence |

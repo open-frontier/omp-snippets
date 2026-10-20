@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **`ste100`** — a style pin for ASD-STE100, the controlled language of aerospace maintenance documentation. It defaults to about 80% of the specification and takes `strict` (or `100`) for the full rule set.
+- **`html`** — a style pin that delivers explanations as one self-contained, offline HTML page: inline CSS and JavaScript, light and dark, interaction only where it aids understanding.
+
+### Changed
+
+- **Enter toggles in the picker; Tab inserts.** On a pinnable row, `Enter` now toggles the pin in place, like `Right arrow`, which still works. On a role row, `Enter` selects the role immediately, or clears it when it is already active; the status line confirms it, and no history confirmation is added. `Tab` inserts the trigger text for every row, and `Enter` still inserts ordinary snippets. The hint line names both keys.
+- **Parameterized pinnables toggle from the picker.** `max-chars`, `show`, and `ste100` were silently excluded from the picker toggle because they contain `$1`. They now pin with the argument blank, exactly like `::pin(name)`, so each snippet's documented default applies (280 characters, smallest useful format, about 80% STE). `AutocompleteItem.hasArgs` is removed.
+
 ## [0.6.0] — 2026-10-19
 
 ### Added

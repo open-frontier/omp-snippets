@@ -1,20 +1,17 @@
 # omp-snippets
 
-Composable `::name` prompt snippets for [omp](https://github.com/oh-my-pi) (oh-my-pi) — chain, parameterize, and pin reusable instruction fragments. Type `::name` anywhere in a message to expand a snippet; combine several in one message; pin a standing style (`::pin(concise)`) so it stays active every turn without retyping.
+Reusable instructions for [omp](https://github.com/oh-my-pi/pi-coding-agent). Type `::name` anywhere in your message, keep preferences active, or select a conversation role.
 
-This repository is an omp [marketplace](https://github.com/oh-my-pi/pi-coding-agent) — it hosts one plugin, `snippets`.
+| Expand | Pin | Select a role |
+|---|---|---|
+| `::name(args)` | `::pin(name)` | `::role-name` |
+| One message | Every turn, until unpinned | One user-selected mode |
 
-## Demo
-
-**Picker, inline expansion, and pins**
-
-![The :: picker, pinning a style, and inline expansion](./docs/demo/hero.gif)
-
-**Enforced Q&A-only guard and roles**
-
-![A Q&A-only pin refusing a write under auto-approve, then a role](./docs/demo/guard-roles.gif)
+This repository is an omp [marketplace](https://github.com/oh-my-pi/pi-coding-agent) that hosts one plugin, `snippets`.
 
 ## Install
+
+In omp:
 
 ```
 /marketplace add open-frontier/omp-snippets
@@ -28,33 +25,103 @@ omp plugin marketplace add open-frontier/omp-snippets
 omp plugin install snippets@omp-snippets
 ```
 
-## What you get
+## Snippets
 
-- **`::name` / `::name(args)` expansion** — type a trigger inline, anywhere in your prose; it expands to the snippet's instruction.
-- **A live filterable picker** — type `::` to browse role-like rows first, then other pinnables, then ordinary one-shot snippets, with `Tab`/`Enter`/arrows/`Escape` navigation. Role-like names (including the guarded `q&a` pin) are purple; other pinnable names are green; ordinary names and descriptions retain the normal foreground. Names and one-line descriptions share aligned columns, descriptions are capped at 60 code points, and pinnables keep their checkbox/pin mark.
-- **A pin mechanism** — `::pin(name)` keeps a standing preference active for the session, with a `Right arrow` picker hotkey and opt-in exclusivity groups. Pins are advisory except **Q&A**: `::pin(qa)` blocks non-read-only tool calls until `::unpin(qa)`. The bundled Q&A aliases (`qa`, `QA`, `question and answer`, `ask-mode`, `plan-mode`, `planning`) resolve to one stable pin entry, so pinning or unpinning through any of them addresses the same snapshot. It is independent of native `/plan` and approval settings. See the [Q&A-only guard](./plugins/snippets/README.md#qa-only-guard-guard-qa).
-- **Roles** — a snippet marked `kind: role` is a standing operational role for the main conversation: type its bare name (`::release-captain`) to select or refresh it, `::unrole` to clear it. Roles are separate from pinned presentation styles, apply only to the main agent, and persist across resume and branch via a native session entry. Role selection takes a bare name only; an argument wrapper such as `::release-captain(args)` or `::release-captain<<...>>` is unsupported. A wrapper recognized for a selectable real role stays literal and inert in the text where it is recognized, rather than activating anything. This is phase-local protection, not cross-phase quoting: separately generated role-head/opener text does not undo an expansion already completed earlier. Existing bracket-first expansion and `::pins`/`::unpin`/`::pin` preprocessing order is unchanged.
-- **26 bundled examples** — output styles, behavioral pins, and one-shot actions, including `bluf-insight` for BLUF plus useful `★ Insight` asides. No generic reviewer/researcher roles ship; use native subagents for delegated specialist work. See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for the catalog and authoring guide.
+Use an instruction once by typing its name in your message. Combine several, or pass arguments with `::name(args)`. It expands for that message; it is not automatically repeated on later turns.
 
-## Snippet, pin, or role?
+```
+::verify   → re-check each claim against concrete evidence
+::reflect  → reflect on intent, then reformulate it clearly
+```
 
-Every `::` trigger is one of three kinds. Unlike a `/slash` command (first token only, one per message), all of them work inline, anywhere in your prose; see [snippets vs. skills vs. slash commands](./plugins/snippets/README.md#snippets-vs-skills-vs-slash-commands).
+Type `::` to browse the bundled snippets.
 
-| | Snippet | Pin | Role |
+## Pinned snippets
+
+Keep instructions active every turn without retyping them. Stack output styles such as `concise`, `html`, or `yoda` with working preferences such as `careful`.
+
+```
+::pin(concise) ::pin(careful)
+::unpin(concise)
+```
+
+A *pinnable* snippet supports pinning; it only becomes *pinned* when you turn it on. You can still use it once with `::concise`. Pins remain until unpinned or omp exits; conflicting pins in the same group replace each other.
+
+> **Q&A is a special pin:** `::pin(qa)` blocks non-read-only tool calls until `::unpin(qa)`. It can coexist with a role and is separate from native `/plan`. Other pins are advisory. See the [Q&A-only guard](./plugins/snippets/README.md#qa-only-guard-guard-qa).
+
+## Roles
+
+A role also keeps instructions active, but occupies one separate slot for the main conversation. You choose it, not the model. Selecting another replaces it, and `::unrole` clears it without removing your pins.
+
+Use a role for a sustained perspective or way of working, while keeping your preferred output styles pinned. The selected role is saved with the session and restored on resume or branch; it does not start a separate agent.
+
+> **Custom example, not bundled:** after defining a `release-captain` snippet with `kind: role`, select or clear it like this. Roles take no arguments.
+
+```
+::release-captain
+::unrole
+```
+
+See [Roles](./plugins/snippets/README.md#roles--role-name-and-unrole) for lifetime, prompt placement, and authoring.
+
+## Using the picker
+
+Type `::` and filter by name. Use Up/Down to move and Escape to close. Toggling keeps the picker open and leaves your message unchanged.
+
+| Selected row | Enter | Right arrow | Tab |
 |---|---|---|---|
-| Use for | A one-off instruction | A standing style or policy | A standing operational assignment |
-| Activate | `::name` or `::name(args)` | `::pin(name)`, `::unpin(name)`, or `Right` in the picker | Bare `::name`; `::unrole` clears |
-| Lasts | That message | Every turn until unpinned; this process only | Every turn until cleared; saved in the session |
-| How many | Any number per message | Any number (`group` members replace each other) | One at a time |
-| Arguments | Yes | Yes | No |
-| Reaches the model as | Expanded text in your message | `<pinned-styles>` in the system prompt | `<operational-role>` in the system prompt |
-| Enforced | No | No, except `q&a`, which blocks non-read-only tool calls | No; never overrides safety, approvals, or Plan mode |
-| Defined by | Any snippet file | `pinnable: true` | `kind: role` |
-| Bundled examples | `reflect`, `verify`, `subagent` | `concise`, `careful`, `bluf`, `q&a` | None; write your own |
+| Snippet | Insert | Move cursor | Insert |
+| Pinnable | Pin / unpin | Pin / unpin | Insert |
+| Role | Select / clear | Move cursor | Insert |
+
+Enter applies a role immediately; Tab inserts its trigger for selection when you send. Parameterized pins use their blank-argument default in the picker; type `::pin(max-chars(500))` to choose a value. See [Live picker](./plugins/snippets/README.md#live-picker) for ordering and colors.
+
+## Demo
+
+![The :: picker, pinning a style, and inline expansion](./docs/demo/hero.gif)
+
+This is the existing recording; the picker shortcuts above describe the updated behavior. A second recording shows the [Q&A-only guard refusing a write, then a role](./docs/demo/guard-roles.gif).
+
+## Bundled snippets
+
+All 28 examples ship with the plugin. Type the name with `::` to use one once; pinnable examples can also be pinned.
+
+| Snippet | Type | What it does |
+|---|---|---|
+| [`brainstorm`](./plugins/snippets/examples/brainstorm.md) | One-shot | Brainstorm options and tradeoffs until a decision |
+| [`bugfix`](./plugins/snippets/examples/bugfix.md) | One-shot | Delegate this bug fix to a background subagent |
+| [`chain`](./plugins/snippets/examples/chain.md) | One-shot | Run the following steps as an ordered pipeline |
+| [`drift`](./plugins/snippets/examples/drift.md) | One-shot | Compare intended versus actual outcome for drift |
+| [`explain_fix`](./plugins/snippets/examples/explain_fix.md) | One-shot | Explain the issue and propose concrete fixes |
+| [`fanout`](./plugins/snippets/examples/fanout.md) | One-shot | Fan out independent read-only steps, then join |
+| [`reflect`](./plugins/snippets/examples/reflect.md) | One-shot | Reflect on intent, then reformulate it clearly |
+| [`report`](./plugins/snippets/examples/report.md) | One-shot | Report current thread status from the template |
+| [`runbackground`](./plugins/snippets/examples/runbackground.md) | One-shot | Run this task in a background subagent |
+| [`sidetrack`](./plugins/snippets/examples/sidetrack.md) | One-shot | Take a brief detour, then return to the topic |
+| [`subagent`](./plugins/snippets/examples/subagent.md) | One-shot | Spawn a subagent to handle this off-thread |
+| [`tradeoff`](./plugins/snippets/examples/tradeoff.md) | One-shot | Give a balanced advantages/disadvantages analysis |
+| [`verify`](./plugins/snippets/examples/verify.md) | One-shot | Re-check each claim against concrete evidence |
+| [`bluf`](./plugins/snippets/examples/bluf.md) | Style pin | Lead with the one-sentence answer, then details |
+| [`bluf-insight`](./plugins/snippets/examples/bluf-insight.md) | Style pin | Lead with the answer, then insight where it helps |
+| [`concise`](./plugins/snippets/examples/concise.md) | Style pin | Answer concisely in plain language, no fluff |
+| [`explanatory`](./plugins/snippets/examples/explanatory.md) | Style pin | Add educational insights alongside the work |
+| [`html`](./plugins/snippets/examples/html.md) | Style pin | Deliver the answer as a self-contained HTML page |
+| [`informative`](./plugins/snippets/examples/informative.md) | Style pin | Thorough explanations of reasoning and tradeoffs |
+| [`max-chars`](./plugins/snippets/examples/max-chars.md) | Style pin | Hard-cap every response at a set character limit |
+| [`show`](./plugins/snippets/examples/show.md) | Style pin | Present the topic visually in the chosen format |
+| [`socratic`](./plugins/snippets/examples/socratic.md) | Style pin | Answer with questions instead of the answer |
+| [`ste100`](./plugins/snippets/examples/ste100.md) | Style pin | Write in ASD-STE100 aerospace maintenance style |
+| [`yoda`](./plugins/snippets/examples/yoda.md) | Style pin | Speak like Yoda with inverted word order |
+| [`careful`](./plugins/snippets/examples/careful.md) | Behavior pin | Think step by step and double-check changes |
+| [`confirm-first`](./plugins/snippets/examples/confirm-first.md) | Behavior pin | Propose the change first, then await approval |
+| [`direct-evidence`](./plugins/snippets/examples/direct-evidence.md) | Behavior pin | Answer directly with evidence, no praise |
+| [`q&a`](./plugins/snippets/examples/q%26a.md) | Guarded pin | Stay read-only while pinned; unpin to allow changes |
+
+Pinnable examples can also be used once. `q&a` is a guarded pin, not a role. No roles are bundled.
 
 ## Full documentation
 
-See [`plugins/snippets/README.md`](./plugins/snippets/README.md) for usage details, the pin mechanism, the live picker, and the authoring guide for writing your own snippets.
+See the [catalog and authoring guide](./plugins/snippets/README.md) for aliases, pin groups, arguments, and creating your own snippets or roles. For how snippets differ from skills and slash commands, see [Snippets vs. skills vs. slash commands](./plugins/snippets/README.md#snippets-vs-skills-vs-slash-commands).
 
 ## License
 

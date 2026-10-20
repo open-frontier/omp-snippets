@@ -57,10 +57,10 @@
  * 16.0.1 — print mode (`omp -p`) and RPC mode never call it. `::` triggers
  * therefore only expand in interactive sessions.
  *
- * ## Live picker (Tab-to-complete, color-coded, Right-arrow to pin)
+ * ## Live picker (Tab to insert, Enter/Right arrow to toggle, color-coded)
  *
  * Typing `::` shows a filterable dropdown below the editor (Up/Down cycle,
- * Tab/Enter accept, Escape cancel). See the "Live `::name` picker" section
+ * Tab insert, Enter toggle or insert, Escape cancel). See the "Live `::name` picker" section
  * below for why this needed a raw-terminal-input bypass instead of the
  * documented `addAutocompleteProvider` extension point — that API is real,
  * but the built-in editor's own keystroke gate never routes a literal `::`
@@ -85,23 +85,19 @@
  * rather than a repaint. The pin state is
  * also marked without relying on color: a pinnable row that isn't pinned
  * right now carries a trailing `☐` checkbox, an active pin its trailing `📌`
- * glyph, and non-pinnable rows leave that column blank. Right arrow on a
- * highlighted pinnable row toggles
- * its pin state in place — no text inserted, picker stays open — separate
- * from Tab/Enter, which still insert the one-shot trigger into the message
- * as before (accepting a role row inserts `::role-name`; it does not
- * activate anything by itself). Excluded from the hotkey: snippets with an
- * unbound `$1`/`$@`/`$ARGUMENTS` placeholder (`max-chars`) — there's no
- * argument value to bind from a keypress, so those stay `::pin(name(args))`
- * text-only, and roles, which are never pinnable. Three status-bar lines
+ * glyph, and non-pinnable rows leave that column blank. Enter or Right arrow
+ * on a highlighted pinnable row toggles its pin state in place — no text
+ * inserted, picker stays open. A parameterized pinnable pins with its
+ * argument blank, exactly like `::pin(name)`. Enter on a role row selects
+ * that role immediately, or clears it when it is already active. Tab always
+ * inserts the one-shot trigger text, and Enter inserts it for ordinary
+ * snippets. Three status-bar lines
  * (`ctx.ui.setStatus`) mirror the pinned set, the active role, and — while a
  * `guard: qa` pin is active — the enforced Q&A-only mode at all times, not
  * just while the picker is open, so no standing state disappears once you
  * close it. A muted footer line under the rows names what the highlighted
- * row would do: the pin-toggle key for a pinnable row, or — for a role row,
- * which Tab/Enter only inserts as text — `conversation role · send to select`
- * (`· send to refresh` when it is already the active role), so the standing
- * effect is visible before submission.
+ * row's keys would do: toggle or insert for a pinnable row, select/clear or
+ * insert for a role row.
  *
  * Every row is label first — `::name` plus its pin mark, then the
  * description — and is fitted to a single line at whatever width the surface
@@ -168,14 +164,15 @@
  * blocks every mutating or executing tool call until the user unpins (see
  * the "Q&A-only guard" section below; `examples/q&a.md` is the bundled
  * example). Bare `::q&a` stays a one-shot prompt — only `::pin` (or
- * the picker's Right arrow) engages the guard.
+ * the picker's Enter/Right arrow) engages the guard.
  *
  * ## Roles — `::role-name` / `::unrole`
  *
  * A snippet with `kind: role` in frontmatter is an operational role, not an
  * ordinary snippet: typing its bare trigger and submitting selects it as the
  * one active role for the main conversation (re-selecting refreshes its saved
- * snapshot; it is never a toggle), and `::unrole` clears it. Roles accept no
+ * snapshot; submitted text never toggles — only the picker's Enter clears the
+ * active role), and `::unrole` clears it. Roles accept no
  * arguments — `::role-name(args)` and `::role-name<<...>>` are left untouched
  * and never activate — and only the submitted text is scanned for them: a
  * `::role-name` sitting inside a snippet body or inside another trigger's
@@ -1164,7 +1161,7 @@ export function assembleMessage(result: Pick<ExpansionResult, "text" | "prepend"
 // not idle or owned async jobs are still running (enforcement cannot
 // retroactively stop work already in flight), and a host that cannot report
 // either fact refuses too. Bare `::name` remains the one-shot prompt it always
-// was: only `::pin(name)` (or the picker's Right arrow) activates the
+// was: only `::pin(name)` (or the picker's Enter/Right arrow) activates the
 // enforced mode. The guard is host tool interception, not OS containment —
 // the user's own shell, other sessions, and external processes are outside
 // its authority.
@@ -1410,9 +1407,9 @@ export type PinAttempt =
 	| { status: "not-pinnable" }
 	| { status: "guard-refused"; reason: string };
 
-/** Bare-name pin, no arg substitution — used by the picker's hotkey toggle
- *  (Right arrow), which has no argument value to bind and only ever offers
- *  this on items where `AutocompleteItem.hasArgs` is false. `::pin(name)`
+/** Bare-name pin — used by the picker's Enter/Right-arrow toggle. Expands
+ *  `::name` with no arguments, so a parameterized body binds its placeholders
+ *  blank, the same as typing `::pin(name)`. `::pin(name)`
  *  text triggers go through `processPinTriggers` above instead, which also
  *  handles the `name(args)` case this deliberately doesn't. `gate` is
  *  consulted for a `guard: qa` definition — and for a refresh of a pin whose
@@ -2038,6 +2035,31 @@ function restoreRole(ctx: ExtensionContext, state: SnippetSessionState): void {
 	updateRoleStatus(ctx, state);
 }
 
+/** Selects `def` as the active role, or explains why it can't be, and returns
+ *  the short history confirmation. Shared by submitted `::role-name` text and
+ *  the picker's Enter toggle so both paths apply the same identity and body
+ *  checks and write the same session entry. */
+function selectRole(
+	def: SnippetDef,
+	registry: Map<string, SnippetDef>,
+	ctx: ExtensionContext,
+	state: SnippetSessionState,
+	pi: ExtensionAPI,
+): string {
+	const identity = resolveAgentIdentity(ctx);
+	if (identity !== "main") {
+		if (identity === "unknown") noticeIdentityUnavailable(ctx, state);
+		return "(role unavailable)";
+	}
+	const body = extractRoleBody(def, registry);
+	if (body === undefined) {
+		ctx.ui.notify(`Role "${def.name}" has no content to inject.`, "warning");
+		return `(role ${def.name} unavailable)`;
+	}
+	setActiveRole(ctx, state, pi, { name: def.name, body });
+	return `(role: ${def.name})`;
+}
+
 /** Applies top-level role actions to `state` (left to right — the last valid
  *  action wins) and rewrites each trigger into a short confirmation for the
  *  message history. The role body itself is never copied into the transcript,
@@ -2052,7 +2074,6 @@ function applyRoleActions(
 ): string {
 	const actions = findRoleActions(text, registry);
 	if (actions.length === 0) return text;
-	const identity = resolveAgentIdentity(ctx);
 	const rewrites: Array<{ start: number; end: number; text: string }> = [];
 
 	for (const action of actions) {
@@ -2065,19 +2086,7 @@ function applyRoleActions(
 			}
 			continue;
 		}
-		if (identity !== "main") {
-			if (identity === "unknown") noticeIdentityUnavailable(ctx, state);
-			rewrites.push({ start: action.start, end: action.end, text: "(role unavailable)" });
-			continue;
-		}
-		const body = extractRoleBody(action.def, registry);
-		if (body === undefined) {
-			ctx.ui.notify(`Role "${action.def.name}" has no content to inject.`, "warning");
-			rewrites.push({ start: action.start, end: action.end, text: `(role ${action.def.name} unavailable)` });
-			continue;
-		}
-		setActiveRole(ctx, state, pi, { name: action.def.name, body });
-		rewrites.push({ start: action.start, end: action.end, text: `(role: ${action.def.name})` });
+		rewrites.push({ start: action.start, end: action.end, text: selectRole(action.def, registry, ctx, state, pi) });
 	}
 
 	// Right-to-left so earlier spans keep their original offsets.
@@ -2086,6 +2095,26 @@ function applyRoleActions(
 		result = result.slice(0, rewrite.start) + rewrite.text + result.slice(rewrite.end);
 	}
 	return result;
+}
+
+/** Picker Enter on a role row: clears the role when it is the active one,
+ *  otherwise selects it — immediately, without a submitted message, so the
+ *  status bar is the confirmation. `selectRole` reports its own refusals
+ *  (unknown host identity, empty body) and leaves the role unchanged. */
+function toggleRoleFromPicker(
+	name: string,
+	ctx: ExtensionContext,
+	state: SnippetSessionState,
+	pi: ExtensionAPI,
+): void {
+	if (state.role?.name === name) {
+		setActiveRole(ctx, state, pi, null);
+		return;
+	}
+	const registry = buildSnippetRegistry(ctx.cwd);
+	const def = registry.get(name);
+	if (!def || !isRoleDef(def)) return;
+	selectRole(def, registry, ctx, state, pi);
 }
 
 const ROLE_PREAMBLE =
@@ -2134,7 +2163,8 @@ export function buildRoleSystemPromptBlocks(role: ActiveRole): string[] {
 //      you go). Mid-buffer edits after moving the cursor elsewhere are not
 //      tracked; accepted tradeoff for a picker, not a full completion API.
 //   3. When the buffer ends with `::name`, render candidates as a
-//      `belowEditor` widget and start consuming Tab/Enter (accept), Up/Down
+//      `belowEditor` widget and start consuming Tab (insert), Enter (toggle
+//      or insert), Up/Down
 //      (cycle), and Escape (cancel) — ONLY while a match is active; every
 //      other key keeps behaving exactly as before. The widget is a component
 //      factory over structured rows, not a row-string array: a plain
@@ -2164,10 +2194,6 @@ export interface AutocompleteItem {
 	 *  The renderers only ever shorten it further, to the cells a row has. */
 	description?: string;
 	pinnable: boolean;
-	/** True when the snippet body still has an unbound `$1`/`$@`/`$ARGUMENTS`
-	 *  placeholder — the picker's hotkey-toggle can't supply an arg value, so
-	 *  these are excluded from it and stay `::pin(name(args))`-text-only. */
-	hasArgs: boolean;
 	/** Display category for picker ordering and coloring only — `Role` for a
 	 *  real role or a pinnable `category: role`, `Styles` for
 	 *  `category: style`, the authored label otherwise, `Snippets` when the
@@ -2200,7 +2226,7 @@ const MAX_DESCRIPTION_CODEPOINTS = 60;
  *  The label is the one segment neither surface can fit for itself: the
  *  native `ansi` node has no truncation of its own, so a long canonical name
  *  must be bounded before it is described, or the mini-terminal autowraps it
- *  onto a second row. Display only — the item's value, which Tab/Enter
+ *  onto a second row. Display only — the item's value, which Tab
  *  inserts, keeps the full name. */
 const MAX_LABEL_CELLS = 28;
 /** Cells between the label column and the description: three spaces, the
@@ -2460,8 +2486,6 @@ export interface PickerActiveState {
 	role?: string;
 }
 
-const PLACEHOLDER_PATTERN = /\$(\d+|@|ARGUMENTS)/;
-
 /** Builds the picker's rows for a query, already ordered.
  *
  *  Three groups, group first: the purple tier — real roles and pinnable rows
@@ -2503,7 +2527,6 @@ export function buildSnippetAutocompleteItems(cwd: string, query: string, active
 			label: `::${def.name}`,
 			description: snippetDescription(def),
 			pinnable: def.pinnable,
-			hasArgs: isRoleDef(def) ? false : PLACEHOLDER_PATTERN.test(def.raw),
 			category: displayCategory(def),
 			isRole: isRoleDef(def) ? true : undefined,
 		};
@@ -2551,26 +2574,23 @@ export function scrollPickerIntoView(state: PickerState): void {
 	state.windowStart = Math.max(0, Math.min(state.windowStart, maxStart));
 }
 
-/** Pure gate for the Right-arrow pin-toggle: pinnable items only, and only
- *  when there's no unbound arg placeholder to bind from a keypress alone —
- *  those stay `::pin(name(args))` text-only. Shared by `pickerHint` and
- *  `togglePinOnHighlighted`'s actual gate — a test seam, exported for direct
- *  unit testing without a real terminal input stream. */
-export function canToggleFromPicker(item: Pick<AutocompleteItem, "pinnable" | "hasArgs"> | undefined): boolean {
-	return !!item?.pinnable && !item.hasArgs;
+/** Pure gate for picker pin toggles (Enter and Right arrow): pinnable items
+ *  only. A parameterized pinnable pins with its `$1` blank, the same as typing
+ *  `::pin(name)`; every bundled one documents its blank-argument default. A
+ *  test seam, exported for direct unit testing without a real terminal input
+ *  stream. */
+export function canToggleFromPicker(item: Pick<AutocompleteItem, "pinnable"> | undefined): boolean {
+	return !!item?.pinnable;
 }
 
-/** Footer hint for the highlighted row. Rows are only ever *inserted* as text by
- *  Tab/Enter, so for a role the hint has to say what the row means once the
- *  message is sent — otherwise a bare `::role-name` sitting in the editor reads
- *  like any other one-shot trigger. Pinnable rows keep their key hint, since
- *  Right-arrow acts on them without touching the buffer — a role-like pin
- *  (`category: role`) among them: it is still a pin, and only `isRole` — a real
- *  `kind: role` definition — can ask for a role's wording here. */
+/** Footer hint for the highlighted row. Tab always inserts the trigger text;
+ *  Enter toggles pinnable and role rows in place and inserts every other row.
+ *  A role-like pin (`category: role`) is still a pin, and only `isRole` — a
+ *  real `kind: role` definition — gets a role's wording here. */
 function pickerHint(item: AutocompleteItem | undefined, activeRole: string | undefined): string | undefined {
-	if (canToggleFromPicker(item)) return "right arrow to toggle pin";
+	if (canToggleFromPicker(item)) return "enter / right arrow to toggle pin · tab to insert";
 	if (item?.isRole !== true) return undefined;
-	return item.value === activeRole ? "active conversation role · send to refresh" : "conversation role · send to select";
+	return item.value === activeRole ? "active conversation role · enter to clear · tab to insert" : "conversation role · enter to select · tab to insert";
 }
 
 /** `DescribeContext.supports` (`native/node.ts`): does this terminal render
@@ -2791,7 +2811,7 @@ class PickerWidget {
 		if (column < 1) return ` ${truncateCells(`${caret}${label}`, budget)}`;
 		// Cut the name to the column and keep the pin mark whole behind it: a
 		// row you can pin must still show whether it is pinned. Display only —
-		// the item's value, which Tab/Enter inserts, keeps the full name. Only
+		// the item's value, which Tab inserts, keeps the full name. Only
 		// when the column cannot hold the mark at all does the cut take the
 		// combined label.
 		const markCells = Bun.stringWidth(row.mark);
@@ -2990,14 +3010,16 @@ export function computeAcceptedEditorText(currentText: string, matchedSuffix: st
 /** Wires the raw-input picker for one session. Returns an unsubscribe function
  *  that also clears the widget.
  *  `pinnedStyles` is the SAME map the `input`/`before_agent_start` handlers
- *  use — a single source of truth, so a Right-arrow toggle here is visible
+ *  use — a single source of truth, so a picker toggle here is visible
  *  to `::pins` and vice versa. `readActiveRole` is read lazily for the same
  *  reason: the picker is installed once per session lifecycle event, but the
- *  active role can change between keystrokes. */
+ *  active role can change between keystrokes. `toggleRole` selects or clears
+ *  a role immediately for Enter on a role row. */
 function installSnippetPicker(
 	ctx: ExtensionContext,
 	pinnedStyles: Map<string, PinnedSnippet>,
 	readActiveRole: () => string | undefined,
+	toggleRole: (name: string) => void,
 ): () => void {
 	const ui = ctx.ui as unknown as UiWithTerminalInput;
 	const scheduleTimeout = resolveScheduler(ctx);
@@ -3043,16 +3065,14 @@ function installSnippetPicker(
 		closePicker();
 	}
 
-	/** Right arrow toggles the highlighted item's pin state without touching
-	 *  the message buffer or closing the picker — a separate action from
-	 *  Tab/Enter (which insert the one-shot trigger into this message).
-	 *  No-ops (falls through unconsumed, cursor moves normally) for
-	 *  non-pinnable items — roles among them — and for parameterized ones
-	 *  (`hasArgs`), since there's no argument value to bind here: those stay
-	 *  `::pin(name(args))` text-only. A `guard: qa` item consults the same
-	 *  runtime gate as the text path (`qaActivationRefusal`); a refusal warns
-	 *  and leaves every pin untouched. The list is deliberately NOT re-sorted
-	 *  here, so the highlighted row stays under the cursor. */
+	/** Enter and Right arrow toggle the highlighted item's pin state without
+	 *  touching the message buffer or closing the picker; Tab inserts the
+	 *  one-shot trigger instead. No-ops (Right arrow falls through unconsumed,
+	 *  cursor moves normally) for non-pinnable items, roles among them. A
+	 *  parameterized pinnable pins with its argument blank. A `guard: qa` item
+	 *  consults the same runtime gate as the text path (`qaActivationRefusal`);
+	 *  a refusal warns and leaves every pin untouched. The list is deliberately
+	 *  NOT re-sorted here, so the highlighted row stays under the cursor. */
 	function togglePinOnHighlighted(): boolean {
 		if (!picker) return false;
 		const item = picker.items[picker.selectedIndex];
@@ -3077,8 +3097,18 @@ function installSnippetPicker(
 		if (disposed) return undefined;
 		if (picker) {
 			const key = decodeRawKey(data);
-			if (key === "tab" || key === "enter") {
+			if (key === "tab") {
 				acceptSelection();
+				return { consume: true };
+			}
+			if (key === "enter") {
+				const item = picker.items[picker.selectedIndex];
+				if (item?.isRole) {
+					toggleRole(item.value);
+					renderPicker(ctx, picker, pinnedStyles, readActiveRole());
+				} else if (!togglePinOnHighlighted()) {
+					acceptSelection();
+				}
 				return { consume: true };
 			}
 			if (key === "up") {
@@ -3179,7 +3209,12 @@ export default function snippetsExtension(pi: ExtensionAPI) {
 		// A picker widget left over from the previous context would otherwise stay
 		// on screen after a switch, since the new UI never saw its close.
 		ctx.ui.setWidget(PICKER_WIDGET_KEY, undefined);
-		uninstallPicker = installSnippetPicker(ctx, pinnedStyles, () => session.role?.name);
+		uninstallPicker = installSnippetPicker(
+			ctx,
+			pinnedStyles,
+			() => session.role?.name,
+			(name) => toggleRoleFromPicker(name, ctx, session, pi),
+		);
 		updatePinStatus(ctx, pinnedStyles);
 		restoreRole(ctx, session);
 	}
