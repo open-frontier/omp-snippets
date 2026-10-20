@@ -245,6 +245,7 @@ Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not 
 | `chain` | `pipe`, `then` | One-shot | Run an ordered pipeline, feeding each result into the next |
 | `concise` | — | Style pin | Answer compactly in plain language without filler |
 | `confirm-first` | `confirm`, `approval-first` | Behavior pin | Propose the smallest change and await approval before acting |
+| `create-snippet` | `new-snippet` | One-shot | Write a reusable snippet file from your request, then check that it loads |
 | `direct-evidence` | `evidence-first`, `no-praise` | Behavior pin | Ground recommendations in evidence, uncertainty, and objections |
 | `drift` | — | One-shot | Compare original intent with the result and identify the smallest fix |
 | `explain_fix` | `xf`, `explain-fix` | One-shot | Explain root cause and propose concrete fixes |
@@ -276,6 +277,8 @@ dropping a same-named `.md` into `.omp/snippets/` or `~/.omp/agent/snippets/`.
 `report` reads `templates/thread-report.md` from the loaded package or checkout. That template ships with the plugin; its location is not tied to a particular home-directory installation layout.
 
 ## Authoring your own snippets
+
+To have the agent write one for you, see [`::create-snippet`](#let-the-agent-write-one--create-snippet); the rest of this section is the file format it follows.
 
 Three tiers, checked in this order (later wins on name/alias collision):
 
@@ -374,6 +377,22 @@ Names and aliases are case-insensitive. Ordinary word/hyphen names remain valid;
 Args: `::name(args)` binds into the body via `$1`, `$2`, `$@`, `$@[start:len]`, `$ARGUMENTS` — the same convention `.omp/commands/*.md` uses. Roles take no arguments: `::role-name(args)` and `::role-name<<...>>` are unsupported and do not activate a role.
 
 A composite can reference existing snippets rather than duplicate their prompts. `bluf-insight.md` contains `::bluf` and `::explanatory`; their `<append>` blocks are collected into its expanded and pinned text. Keep standing content in `<append>` when authoring styles for composition. References compose text, not metadata: the composite declares its own `pinnable`, `group`, `category`, and any `guard`.
+
+### Let the agent write one — `::create-snippet`
+
+The bundled `create-snippet` (alias `new-snippet`) has the agent write the file for you. Type the trigger, then describe the snippet in ordinary prose after it:
+
+```
+::create-snippet a snippet that asks for a risk summary before any refactor
+::new-snippet a pin that caps every answer at five bullets, five by default
+```
+
+The agent reads the relevant sections of this README and the closest bundled example, lists the snippets that already exist, and writes one `.md` file — in `.omp/snippets/` unless you ask for a personal snippet. It picks the kind from your request: a one-shot by default, a pin (`pinnable: true` with a `style` or `behavior` category) for a standing style or working preference, or a role (`kind: role`) for a standing operational assignment. A pin with a parameter states what applies when the argument is blank, because the picker and `::pin(name)` pin it blank. It never overwrites a file or silently shadows a name or alias another tier already uses: on a collision it picks another name or asks. Then it reports the path, the kind, how to use it, and what it checked.
+
+- **Plain prose only.** The helper takes no arguments: `::create-snippet(...)` and `::create-snippet<<...>>` drop your request. A trigger typed inside your request expands like anywhere else, so name other snippets without the colons.
+- **Mechanics, not obedience.** When the agent can run this package's own code, it confirms that the name and aliases resolve to the new file with no definition problems, and that a one-shot expands once, a pin's stored text holds the task once, or a role's body extracts. An installed copy may not run outside omp; then the agent says so, and typing the new trigger once is your check. Neither proves a model will always follow the text — snippet text is an instruction, not enforcement or automatic execution.
+- **Nothing is turned on for you.** A pin or role stays off until you pin or select it. If a pinned Q&A guard blocks writes, the agent shows the complete file and its path instead.
+- **Copy a working file, not the template above.** The annotated template is for reading: frontmatter is read line by line, so a trailing `# comment` becomes part of the value (`pinnable: true # note` is not pinnable), and the tag names it mentions inside its own text would break the block parse. Start from a bundled example.
 
 ## Known limitations
 

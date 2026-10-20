@@ -974,15 +974,6 @@ describe("buildSnippetAutocompleteItems", () => {
 		expect(items.find((i) => i.value === "verify")?.pinnable).toBe(false);
 	});
 
-	it("flags hasArgs when the body has an unbound placeholder", () => {
-		const cwd = tempDir();
-		writeSnippet(path.join(cwd, ".omp", "snippets"), "max-chars.md", "---\npinnable: true\n---\nLimit to $1 chars");
-		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nBe careful, no placeholders");
-		const items = buildSnippetAutocompleteItems(cwd, "");
-		expect(items.find((i) => i.value === "max-chars")?.hasArgs).toBe(true);
-		expect(items.find((i) => i.value === "careful")?.hasArgs).toBe(false);
-	});
-
 	it("label stays a bare ::name — no baked-in pin marker (rendering owns that dynamically)", () => {
 		const cwd = tempDir();
 		writeSnippet(path.join(cwd, ".omp", "snippets"), "careful.md", "---\npinnable: true\n---\nbody");
@@ -997,7 +988,6 @@ describe("buildSnippetAutocompleteItems", () => {
 		const role = items.find((i) => i.value === "zz-role");
 		expect(role?.isRole).toBe(true);
 		expect(role?.pinnable).toBe(false);
-		expect(role?.hasArgs).toBe(false);
 		expect(role?.category).toBe("Role");
 	});
 
@@ -1010,7 +1000,6 @@ describe("buildSnippetAutocompleteItems", () => {
 		);
 		const item = buildSnippetAutocompleteItems(cwd, "explain").find((i) => i.value === "explain");
 		expect(item?.description).toBe("Explain the change and its tradeoffs");
-		expect(item?.hasArgs).toBe(false);
 	});
 
 	it("falls back to a one-line body preview when no description is authored", () => {
@@ -1092,16 +1081,12 @@ describe("resolveScheduler", () => {
 });
 
 describe("canToggleFromPicker", () => {
-	it("allows pinnable items with no argument placeholder", () => {
-		expect(canToggleFromPicker({ pinnable: true, hasArgs: false })).toBe(true);
+	it("allows pinnable items, including parameterized ones", () => {
+		expect(canToggleFromPicker({ pinnable: true })).toBe(true);
 	});
 
 	it("rejects non-pinnable items", () => {
-		expect(canToggleFromPicker({ pinnable: false, hasArgs: false })).toBe(false);
-	});
-
-	it("rejects pinnable items that take arguments — no value to bind from a keypress", () => {
-		expect(canToggleFromPicker({ pinnable: true, hasArgs: true })).toBe(false);
+		expect(canToggleFromPicker({ pinnable: false })).toBe(false);
 	});
 
 	it("rejects an undefined item (empty picker, out-of-range selection)", () => {
@@ -1197,7 +1182,7 @@ describe("isInsideUnclosedTriggerArgs", () => {
 
 describe("scrollPickerIntoView", () => {
 	function items(n: number): AutocompleteItem[] {
-		return Array.from({ length: n }, (_, i) => ({ label: `item${i}`, value: `item${i}`, pinnable: false, hasArgs: false }));
+		return Array.from({ length: n }, (_, i) => ({ label: `item${i}`, value: `item${i}`, pinnable: false }));
 	}
 
 	it("does not scroll when the selection is already within the visible window", () => {
@@ -1256,6 +1241,32 @@ describe("bundled examples", () => {
 		expect(registry.get("reflect")?.pinnable).toBe(false);
 		expect(registry.get("reframe")?.name).toBe("reflect");
 		expect(registry.get("clarify")?.name).toBe("reflect");
+	});
+
+	it("create-snippet is a one-shot helper whose body reaches the model untouched by the parser", () => {
+		const def = registry.get("create-snippet");
+		expect(def).toBeDefined();
+		expect(registry.get("new-snippet")).toBe(def);
+		expect(def?.pinnable).toBe(false);
+		expect(isRoleDef(def)).toBe(false);
+		expect(def?.diagnostics).toBeUndefined();
+
+		// A trigger, argument placeholder, or extra block tag in the body would
+		// be expanded, blanked, or break the block parse instead of being read.
+		const parsed = parseSnippetBlocks(def!.raw);
+		expect(parsed?.append).toHaveLength(1);
+		expect(parsed?.prepend).toHaveLength(0);
+		expect(parsed?.inject).toHaveLength(0);
+
+		const result = expandTriggers("::new-snippet a snippet for release notes", registry);
+		expect(result.append).toEqual(parsed!.append);
+		expect(result.prepend).toEqual([]);
+		expect(result.inject).toEqual([]);
+		expect(result.text).toContain("a snippet for release notes");
+
+		const pinned = new Map<string, PinnedSnippet>();
+		expect(processPinTriggers("::pin(create-snippet)", registry, pinned)).toBe("::pin(create-snippet)");
+		expect(pinned.size).toBe(0);
 	});
 
 
@@ -3697,7 +3708,7 @@ describe("picker — group ordering", () => {
 		openPicker(harness, "::safe");
 		expect(pickerRows(harness)).toContain("::careful");
 		expect(pickerRows(harness)).toContain("PROJECT CAREFUL");
-		harness.pressKey("\r");
+		harness.pressKey("\t");
 		expect(harness.editorText()).toBe("::careful ");
 
 		// Right-arrow on the same row pins the effective body, not the shadowed one.
@@ -3728,7 +3739,7 @@ describe("picker — group ordering", () => {
 
 		openPicker(harness, "::reframe");
 		expect(pickerRows(harness)).toContain("::reflect");
-		harness.pressKey("\r");
+		harness.pressKey("\t");
 		expect(harness.editorText()).toBe("::reflect ");
 
 		const submitted = await harness.input("::reframe");
@@ -3849,10 +3860,10 @@ describe("picker — role-like pins (`category: role`)", () => {
 		openPicker(harness, "::question and answ");
 		expect(pickerRows(harness)).toContain("::q&a");
 
-		// ...and Enter on the full alias completes to the canonical trigger.
+		// ...and Tab on the full alias completes to the canonical trigger.
 		openPicker(harness, "::question and answer");
 		expect(pickerRows(harness)).toContain("::q&a");
-		harness.pressKey("\r");
+		harness.pressKey("\t");
 		expect(harness.editorText()).toBe("::q&a ");
 	});
 
@@ -4015,24 +4026,76 @@ describe("picker — role-like pins (`category: role`)", () => {
 });
 
 describe("picker — insertion and toggle stability", () => {
-	it("inserts a role trigger on Tab/Enter without activating the role until submission", async () => {
+	it("inserts a role trigger on Tab without activating the role until submission", async () => {
 		const cwd = tempDir();
 		const dir = path.join(cwd, ".omp", "snippets");
 		writeRole(dir, "zzcat-role", "ROLE-CAT-BODY");
 		const harness = createSnippetsHarness(cwd);
 		await harness.emit("session_start");
 
-		for (const key of ["\t", "\r"]) {
-			openPicker(harness, "::zzcat-role");
-			harness.pressKey(key);
-			expect(harness.editorText()).toBe("::zzcat-role ");
-			expect(roleAppends(harness)).toHaveLength(0);
-		}
+		openPicker(harness, "::zzcat-role");
+		harness.pressKey("\t");
+		expect(harness.editorText()).toBe("::zzcat-role ");
+		expect(roleAppends(harness)).toHaveLength(0);
 		expect(promptText(await harness.beforeAgentStart(["NATIVE-BASE"]))).not.toContain("ROLE-CAT-BODY");
 
 		await harness.input(harness.editorText().trim());
 		expect(roleAppends(harness)).toHaveLength(1);
 		expect(lastRoleRecord(harness)?.role?.name).toBe("zzcat-role");
+	});
+
+	it("selects a role immediately on Enter and clears it on a second Enter, leaving the buffer alone", async () => {
+		const cwd = tempDir();
+		const dir = path.join(cwd, ".omp", "snippets");
+		writeRole(dir, "zzent-role", "ROLE-ENTER-BODY");
+		const harness = createSnippetsHarness(cwd);
+		await harness.emit("session_start");
+
+		openPicker(harness, "::zzent-role");
+		harness.pressKey("\r");
+		expect(harness.editorText()).toBe("::zzent-role");
+		expect(lastRoleRecord(harness)?.role?.name).toBe("zzent-role");
+		expect(roleStatusText(harness)).toBe("Role: zzent-role");
+		expect(pickerHint(harness)).toContain("enter to clear");
+		expect(promptText(await harness.beforeAgentStart(["NATIVE-BASE"]))).toContain("ROLE-ENTER-BODY");
+
+		harness.pressKey("\r");
+		expect(lastRoleRecord(harness)?.role).toBeNull();
+		expect(roleStatusText(harness)).toBe("");
+		expect(promptText(await harness.beforeAgentStart(["NATIVE-BASE"]))).not.toContain("ROLE-ENTER-BODY");
+	});
+
+	it("refuses an Enter role selection in a subagent session", async () => {
+		const cwd = tempDir();
+		writeRole(path.join(cwd, ".omp", "snippets"), "zzsub-role", "ROLE-SUB-BODY");
+		const harness = createSnippetsHarness(cwd, { agentKind: "sub" });
+		await harness.emit("session_start");
+
+		openPicker(harness, "::zzsub-role");
+		harness.pressKey("\r");
+		expect(roleAppends(harness)).toHaveLength(0);
+		expect(roleStatusText(harness)).toBe("");
+	});
+
+	it("toggles a pin on Enter in place, binding a parameterized body blank, and still inserts ordinary rows", async () => {
+		const cwd = tempDir();
+		const dir = path.join(cwd, ".omp", "snippets");
+		writeSnippet(dir, "zzcap.md", "---\npinnable: true\n---\nCap at [$1] chars");
+		writeSnippet(dir, "zzplain.md", "ZZPLAIN-BODY");
+		const harness = createSnippetsHarness(cwd);
+		await harness.emit("session_start");
+
+		openPicker(harness, "::zzcap");
+		harness.pressKey("\r");
+		expect(harness.editorText()).toBe("::zzcap");
+		expect(pinnedStylesBlock(promptText(await harness.beforeAgentStart(["NATIVE-BASE"])))).toContain("Cap at [] chars");
+
+		harness.pressKey("\r");
+		expect(promptText(await harness.beforeAgentStart(["NATIVE-BASE"]))).not.toContain("Cap at");
+
+		openPicker(harness, "::zzplain");
+		harness.pressKey("\r");
+		expect(harness.editorText()).toBe("::zzplain ");
 	});
 
 	it("keeps the highlighted row in place when the right-arrow toggle changes pin state", async () => {

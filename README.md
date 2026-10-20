@@ -9,6 +9,12 @@ Reusable instructions for [omp](https://github.com/oh-my-pi/pi-coding-agent). Ty
 
 This repository is an omp [marketplace](https://github.com/oh-my-pi/pi-coding-agent) that hosts one plugin, `snippets`.
 
+## Demo
+
+![The :: picker, pinning a style, and inline expansion](./docs/demo/hero.gif)
+
+This is the existing recording; the picker shortcuts below describe the updated behavior. A second recording shows the [Q&A-only guard refusing a write, then a role](./docs/demo/guard-roles.gif).
+
 ## Install
 
 In omp:
@@ -32,6 +38,12 @@ Use an instruction once by typing its name in your message. Combine several, or 
 ```
 ::verify   → re-check each claim against concrete evidence
 ::reflect  → reflect on intent, then reformulate it clearly
+```
+
+Several snippets can share one message. They combine as modifiers on the same request; they are not a hard sequence of steps.
+
+```
+::careful ::concise ::verify Review the changes to authentication.
 ```
 
 Type `::` to browse the bundled snippets.
@@ -76,21 +88,16 @@ Type `::` and filter by name. Use Up/Down to move and Escape to close. Toggling 
 
 Enter applies a role immediately; Tab inserts its trigger for selection when you send. Parameterized pins use their blank-argument default in the picker; type `::pin(max-chars(500))` to choose a value. See [Live picker](./plugins/snippets/README.md#live-picker) for ordering and colors.
 
-## Demo
-
-![The :: picker, pinning a style, and inline expansion](./docs/demo/hero.gif)
-
-This is the existing recording; the picker shortcuts above describe the updated behavior. A second recording shows the [Q&A-only guard refusing a write, then a role](./docs/demo/guard-roles.gif).
-
 ## Bundled snippets
 
-All 28 examples ship with the plugin. Type the name with `::` to use one once; pinnable examples can also be pinned.
+All 29 examples ship with the plugin. Type the name with `::` to use one once; pinnable examples can also be pinned.
 
 | Snippet | Type | What it does |
 |---|---|---|
 | [`brainstorm`](./plugins/snippets/examples/brainstorm.md) | One-shot | Brainstorm options and tradeoffs until a decision |
 | [`bugfix`](./plugins/snippets/examples/bugfix.md) | One-shot | Delegate this bug fix to a background subagent |
 | [`chain`](./plugins/snippets/examples/chain.md) | One-shot | Run the following steps as an ordered pipeline |
+| [`create-snippet`](./plugins/snippets/examples/create-snippet.md) | One-shot | Create a reusable snippet using the plugin conventions |
 | [`drift`](./plugins/snippets/examples/drift.md) | One-shot | Compare intended versus actual outcome for drift |
 | [`explain_fix`](./plugins/snippets/examples/explain_fix.md) | One-shot | Explain the issue and propose concrete fixes |
 | [`fanout`](./plugins/snippets/examples/fanout.md) | One-shot | Fan out independent read-only steps, then join |
@@ -119,10 +126,32 @@ All 28 examples ship with the plugin. Type the name with `::` to use one once; p
 
 Pinnable examples can also be used once. `q&a` is a guarded pin, not a role. No roles are bundled.
 
+## FAQ
+
+### How is a snippet different from a skill or a slash command?
+
+A skill is reusable expertise or a procedure the model loads when it judges it relevant. A slash command is a named command you type as its own entry point; it is not something you mix inline with other text. A snippet is a fragment you type anywhere in a message with `::`, so several can combine in one message. See the [detailed comparison](./plugins/snippets/README.md#snippets-vs-skills-vs-slash-commands).
+
+### How do I create a snippet?
+
+Ask for it: `::create-snippet a snippet that asks for a risk summary before any refactor`. Snippet files live in `~/.omp/agent/snippets/` for personal use or `.omp/snippets/` to share with a project. See [Authoring your own snippets](./plugins/snippets/README.md#authoring-your-own-snippets).
+
+### What is the difference between pinnable, one-shot, and active?
+
+A one-shot snippet applies to the message where you type it. A *pinnable* snippet can also be turned on with `::pin(name)`; once *pinned*, it is active every turn until you unpin it or omp exits.
+
+### How do roles differ from pins?
+
+A role is one mode you select, saved with the session. Pins stack, so you can combine several styles and behaviors, and they last only for the current omp process.
+
+### Do snippets guarantee the model follows them?
+
+No. A snippet is an instruction to the model, not enforcement or automatic execution. The Q&A-only guard is the exception: it blocks non-read-only tool calls while pinned.
+
 ## Full documentation
 
 See the [catalog and authoring guide](./plugins/snippets/README.md) for aliases, pin groups, arguments, and creating your own snippets or roles. For how snippets differ from skills and slash commands, see [Snippets vs. skills vs. slash commands](./plugins/snippets/README.md#snippets-vs-skills-vs-slash-commands).
 
 ## License
 
-MIT — see [LICENSE](./LICENSE). The plugin package carries its own copy at [`plugins/snippets/LICENSE`](./plugins/snippets/LICENSE), because the package archive does not include the repository root. This project incorporates portions of other MIT-licensed software; see [`plugins/snippets/THIRD_PARTY_NOTICES.md`](./plugins/snippets/THIRD_PARTY_NOTICES.md) for the specific code regions and upstream copyright notices those regions require retaining.
+MIT — see [LICENSE](./LICENSE). The plugin package carries its own copy at [plugin license](./plugins/snippets/LICENSE), because the package archive does not include the repository root. This project incorporates portions of other MIT-licensed software; see [third-party notices](./plugins/snippets/THIRD_PARTY_NOTICES.md) for the specific code regions and upstream copyright notices those regions require retaining.
