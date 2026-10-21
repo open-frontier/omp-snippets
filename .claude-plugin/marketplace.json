@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Composable ::name prompt snippets for omp, with a live picker and a pin mechanism for standing behavioral styles.",
-    "version": "0.6.0",
+    "version": "0.7.2",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -13,6 +13,7 @@
       "name": "snippets",
       "description": "Composable ::name / ::name(args) prompt snippets \u2014 chain, parameterize, and pin reusable instruction fragments; live filterable picker; pin mechanism with exclusivity groups.",
       "source": "./snippets",
+      "version": "0.7.2",
       "category": "productivity",
       "keywords": [
         "prompt-engineering",

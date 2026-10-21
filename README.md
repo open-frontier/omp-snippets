@@ -67,12 +67,24 @@ A role also keeps instructions active, but occupies one separate slot for the ma
 
 Use a role for a sustained perspective or way of working, while keeping your preferred output styles pinned. The selected role is saved with the session and restored on resume or branch; it does not start a separate agent.
 
-> **Custom example, not bundled:** after defining a `release-captain` snippet with `kind: role`, select or clear it like this. Roles take no arguments.
+The bundled `mentor` role (alias `teacher`) is a real example. It helps you learn a concept or solve a problem yourself: it starts from your goal and current understanding, asks one question or sets one small exercise per turn, gives feedback on your attempt, and hints in steps. Ask outright for the answer or a worked example and it gives one. Select it by bare name, or clear it, like this:
 
 ```
-::release-captain
+::mentor
 ::unrole
 ```
+
+`::teacher` selects the same role. Roles take no arguments, so type the bare name; the rest of your message is an ordinary request. For example:
+
+```
+::mentor Teach me how Rust lifetimes work. I know C++ but have never used Rust.
+```
+
+Your selection stays user-controlled and lasts until you clear or replace it. Pins keep working beside it, and only one role is active at a time.
+
+`mentor` differs from the `socratic` style pin: `mentor` adapts to what you already know, mixing guided practice with direct explanations when asked, while `socratic` makes question-led delivery the style of every answer.
+
+To define your own role, mark a snippet with `kind: role`; the [authoring guide](./plugins/snippets/README.md#authoring-a-role) walks through a `release-captain` example.
 
 See [Roles](./plugins/snippets/README.md#roles--role-name-and-unrole) for lifetime, prompt placement, and authoring.
 
@@ -90,7 +102,7 @@ Enter applies a role immediately; Tab inserts its trigger for selection when you
 
 ## Bundled snippets
 
-All 29 examples ship with the plugin. Type the name with `::` to use one once; pinnable examples can also be pinned.
+All 30 examples ship with the plugin. Type the name with `::` to use one once; pinnable examples can also be pinned. A role is selected rather than expanded inline.
 
 | Snippet | Type | What it does |
 |---|---|---|
@@ -123,8 +135,9 @@ All 29 examples ship with the plugin. Type the name with `::` to use one once; p
 | [`confirm-first`](./plugins/snippets/examples/confirm-first.md) | Behavior pin | Propose the change first, then await approval |
 | [`direct-evidence`](./plugins/snippets/examples/direct-evidence.md) | Behavior pin | Answer directly with evidence, no praise |
 | [`q&a`](./plugins/snippets/examples/q%26a.md) | Guarded pin | Stay read-only while pinned; unpin to allow changes |
+| [`mentor`](./plugins/snippets/examples/mentor.md) | Role | Learn concepts and solve problems with guided practice |
 
-Pinnable examples can also be used once. `q&a` is a guarded pin, not a role. No roles are bundled.
+Pinnable examples can also be used once. `q&a` is a guarded pin, not a role. `mentor` is a role: `::mentor` (or `::teacher`) selects it for the conversation instead of expanding inline.
 
 ## FAQ
 
@@ -143,6 +156,10 @@ A one-shot snippet applies to the message where you type it. A *pinnable* snippe
 ### How do roles differ from pins?
 
 A role is one mode you select, saved with the session. Pins stack, so you can combine several styles and behaviors, and they last only for the current omp process.
+
+### How is `mentor` different from `socratic`?
+
+`mentor` is a role you select for guided practice: it adapts to your level and mixes questions, exercises, feedback, and direct explanations or worked examples when you ask or get stuck. `socratic` is a style pin that delivers every answer as questions only. A role and a pin occupy different slots.
 
 ### Do snippets guarantee the model follows them?
 

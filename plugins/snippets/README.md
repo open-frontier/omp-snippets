@@ -34,7 +34,7 @@ Every `::` trigger is one of three kinds:
 | Reaches the model as | Expanded text in your message | `<pinned-styles>` in the system prompt | `<operational-role>` in the system prompt |
 | Enforced | No | No, except `q&a`, which blocks non-read-only tool calls | No; never overrides safety, approvals, or Plan mode |
 | Defined by | Any snippet file | `pinnable: true` | `kind: role` |
-| Bundled examples | `reflect`, `verify`, `subagent` | `concise`, `careful`, `bluf`, `q&a` | None; write your own |
+| Bundled examples | `reflect`, `verify`, `subagent` | `concise`, `careful`, `bluf`, `q&a` | `mentor` (alias `teacher`); write your own for anything else |
 
 Details: [Pins](#pins--pinname--unpinname--pins), [Roles](#roles--role-name-and-unrole), [Q&A-only guard](#qa-only-guard-guard-qa). Slash commands and skills are compared [below](#snippets-vs-skills-vs-slash-commands).
 
@@ -157,10 +157,10 @@ Pins are process-local: they survive a same-process `/new`, but not a restart. C
 
 ## Roles — `::role-name` and `::unrole`
 
-A snippet marked `kind: role` is a standing **operational role** for the main conversation, not a one-turn instruction. Submitting its bare name selects it:
+A snippet marked `kind: role` is a standing **operational role** for the main conversation, not a one-turn instruction. The bundled [`mentor`](./examples/mentor.md) is one. Submitting its bare name selects it:
 
 ```
-::release-captain     # selects the role, or re-selects it to refresh
+::mentor              # selects the role, or re-selects it to refresh (::teacher is the same role)
 ::unrole              # clears the active role
 ```
 
@@ -171,6 +171,22 @@ A snippet marked `kind: role` is a standing **operational role** for the main co
 - **Invalid definitions are diagnosed, not fatal.** Problems surface as one `Snippet definition problems:` warning per session, listing `name: problem` lines; a `pinnable` or `group` on a role is ignored with a diagnostic, an empty role body or malformed block tags hides the role from the picker and refuses it at selection, and an unknown `kind:` value is diagnosed and treated as an ordinary snippet. Unrelated snippets keep loading.
 - **Status.** A persistent `Role: <name>` indicator in the status bar shows the active role, separate from the `📌` pin line.
 - **Via the picker.** Role-like rows lead the list (the first tier, shared with role-categorized pins — see [Categories and picker ordering](#categories-and-picker-ordering)). `Enter` selects the highlighted role immediately, or clears it when it is already active; the selection is written to the session like a submitted `::role-name`, but adds no history confirmation — the `Role: <name>` status line is the confirmation. `Tab` inserts the `::role-name` text instead, and selection then happens when you submit the message.
+
+### Bundled role: `mentor`
+
+`mentor` (alias `teacher`; description "Learn concepts and solve problems with guided practice") is for when you want to understand something or solve a problem yourself instead of receiving the finished result. It is a real `kind: role`: you select it, one role is active at a time, it is saved with the session, it takes no arguments, and nothing ever activates it automatically. It is not pinnable and is not a subagent.
+
+Each turn it works from your goal and what you already understand, asking one short question when either is unclear. It then asks one focused question or sets one small exercise, waits for your attempt, and responds to what you actually did. Hints escalate from a nudge to a partial outline to a worked piece, a concept or example is explained when that unblocks you, and once you succeed it checks understanding with a variation or a similar problem in a new setting. Guidance is the default, not a refusal: an explicit request for the answer, a full solution, or a worked example gets one, and getting stuck earns more scaffolding. It does not solve, edit, or run your exercise unless you ask it to demonstrate. Native instructions, safety rules, approval gates, and completion requirements still apply.
+
+```
+::mentor Teach me how Rust lifetimes work. I know C++ but have never used Rust.
+::pin(concise)        # presentation pins keep working beside the role
+::unrole              # back to ordinary answers; the pin stays
+```
+
+Text around the bare name is your ordinary message; the trigger itself becomes a short `(role: mentor)` confirmation. Selecting `::teacher` is identical.
+
+**`mentor` vs. `socratic`.** The `socratic` style pin delivers *every* answer as questions only, whatever you ask. `mentor` is a role for guided practice: it adapts to your level, and mixes questions, exercises, feedback, and direct explanations or worked examples whenever you ask for them or are stuck. They occupy different slots (a role and a pin), so selecting one does not change the other.
 
 ### What a role does to the prompt
 
@@ -203,7 +219,7 @@ operator confirms.
 </append>
 ```
 
-Drop it in `.omp/snippets/` (project-local, shared with your team) or `~/.omp/agent/snippets/` (personal) — project-local wins on a name collision. There is no default role and no production role ships with the plugin.
+Drop it in `.omp/snippets/` (project-local, shared with your team) or `~/.omp/agent/snippets/` (personal) — project-local wins on a name collision. There is no default role: nothing is active until you select one. The release captain above is an illustration, not a bundled file; copy the shape of the bundled [`mentor`](./examples/mentor.md) for a working example.
 
 ## Snippets vs. skills vs. slash commands
 
@@ -223,7 +239,7 @@ Examples side by side:
 - Slash command: `/plan` — a deliberate, named workflow; one shot, first token only.
 - Skill: no trigger typed at all — the model reads `skill://axi` on its own when a task matches its stated purpose.
 - Snippet: `::careful ::concise ::pin(max-chars(280))` — three independent style modifiers stacked inline in one message, the last one also pinned so it persists for the rest of the session.
-- Role snippet: `::release-captain` — selects one standing operational role for the main conversation; `::unrole` clears it.
+- Role snippet: `::mentor` — selects one standing operational role for the main conversation; `::unrole` clears it.
 
 Bottom line: reach for a slash command when you're deliberately invoking a whole procedure, a skill when you want the model to self-serve reference knowledge without you remembering it exists, and a snippet when you want to shape a response inline — a style modifier or a one-off directive — stackable and optionally sticky.
 
@@ -254,6 +270,7 @@ Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not 
 | `html` | `webpage`, `html-page`, `page` | Style pin | Deliver the answer as one self-contained, offline HTML file |
 | `informative` | `verbose`, `detailed` | Style pin | Explain context, reasoning, and tradeoffs thoroughly |
 | `max-chars` | `char-limit`, `maxchars` | Style pin | Cap response length: `::pin(max-chars(280))` |
+| `mentor` | `teacher` | Role | Learn concepts and solve problems with guided practice |
 | `q&a` | `qa` / `QA`, `question and answer`, `ask-mode`, `plan-mode`, `planning` | Guarded pin | Stay read-only while pinned; explicitly unpin to allow changes |
 | `reflect` | `reframe`, `reformulate`, `clarify` | One-shot | Identify intent and reformulate it precisely |
 | `report` | `thread-report`, `status-report` | One-shot | Report current-thread status using the external report template |
@@ -269,7 +286,7 @@ Native `workflowz` and `/wf-*` recipes belong to OMP's orchestration layer, not 
 
 `bluf`, `bluf-insight`, and `socratic` share `answer-delivery`: pinning one replaces the others. BLUF and Socratic answer delivery conflict; the combined style also replaces plain BLUF to avoid repeating it.
 
-One-shot snippets remain non-pinnable and retain the normal foreground. No bundled example defines a `kind: role` conversation role; author project-specific assignments only when needed. Native `reviewer`, `scout`, and other subagents remain the specialist delegation mechanism.
+One-shot snippets remain non-pinnable and retain the normal foreground. `mentor` is the one bundled `kind: role` conversation role: selecting it with `::mentor` or `::teacher` replaces any active role instead of expanding inline, and it joins the leading picker tier in purple. Author project-specific assignments only when needed. Native `reviewer`, `scout`, and other subagents remain the specialist delegation mechanism.
 
 These ship so `::` works immediately after install. Override any of them by
 dropping a same-named `.md` into `.omp/snippets/` or `~/.omp/agent/snippets/`.

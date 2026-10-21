@@ -1,6 +1,6 @@
 {
   "name": "omp-snippets",
-  "version": "0.6.0",
+  "version": "0.7.2",
   "description": "Composable ::name prompt snippets for omp \u2014 chain, parameterize, and pin reusable instruction fragments; live picker; pin mechanism with exclusivity groups.",
   "license": "MIT",
   "type": "module",

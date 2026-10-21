@@ -16,8 +16,8 @@ Inspect first:
   "Snippet, pin, or role?" and "Authoring your own snippets" (plus
   "Authoring a role" for a role). Then open the bundled examples/ file
   nearest to your target: verify for a one-shot, concise or careful for a
-  pin, max-chars for a parameter, bluf for a group. No role ships. If these
-  cannot be read, say so and rely on this prompt alone.
+  pin, max-chars for a parameter, bluf for a group, mentor for a role. If
+  these cannot be read, say so and rely on this prompt alone.
 - List the snippets that already exist: the package's examples/, the
   personal folder (normally ~/.omp/agent/snippets/), and the project's
   .omp/snippets/. Match any local conventions you find there.

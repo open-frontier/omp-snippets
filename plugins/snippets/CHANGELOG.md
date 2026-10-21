@@ -1,18 +1,20 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.2] — 2026-10-21
 
 ### Added
 
 - **`ste100`** — a style pin for ASD-STE100, the controlled language of aerospace maintenance documentation. It defaults to about 80% of the specification and takes `strict` (or `100`) for the full rule set.
 - **`html`** — a style pin that delivers explanations as one self-contained, offline HTML page: inline CSS and JavaScript, light and dark, interaction only where it aids understanding.
-- **`create-snippet`** (alias `new-snippet`) — a one-shot helper that has the agent write a reusable snippet from your request: type the trigger, then describe the snippet in plain prose. It reads the README and the closest bundled example, picks a one-shot, pin, or role (a one-shot unless you ask for standing behavior), saves to `.omp/snippets/` unless you ask for a personal snippet, and never overwrites a file or silently takes over an existing name or alias. A pin with a parameter states what applies when the argument is blank. The agent then checks the loaded result — a one-shot's expansion, a pin's stored text, or a role's extracted body — by running this package's own registry and expansion code when it can and saying so when it cannot; that verifies mechanics, not that a model follows the text. The bundled catalog now has 29 examples.
+- **`create-snippet`** (alias `new-snippet`) — a one-shot helper that has the agent write a reusable snippet from your request: type the trigger, then describe the snippet in plain prose. It reads the README and the closest bundled example, picks a one-shot, pin, or role (a one-shot unless you ask for standing behavior), saves to `.omp/snippets/` unless you ask for a personal snippet, and never overwrites a file or silently takes over an existing name or alias. A pin with a parameter states what applies when the argument is blank. The agent then checks the loaded result — a one-shot's expansion, a pin's stored text, or a role's extracted body — by running this package's own registry and expansion code when it can and saying so when it cannot; that verifies mechanics, not that a model follows the text.
+- **`mentor`** (alias `teacher`) — the first bundled `kind: role`, for learning a concept or solving a problem yourself: *Learn concepts and solve problems with guided practice*. Select it with `::mentor` or `::teacher` and clear it with `::unrole`. It adapts to your goal and current understanding, asks one focused question or sets one small exercise per turn, waits for your attempt, gives feedback and stepwise hints, explains or shows an example when that unblocks you, and checks understanding with a variation. An explicit request for the answer or a worked example gets one, and it does not solve, edit, or run your exercise unless you ask it to demonstrate. Native instructions, safety rules, approval gates, and completion requirements still apply. Unlike the `socratic` style pin, which delivers every answer as questions only, `mentor` is selected and mixes guided practice with direct explanations on request; it is not pinnable and never activates on its own. The bundled catalog now has 30 examples.
 
 ### Changed
 
 - **Enter toggles in the picker; Tab inserts.** On a pinnable row, `Enter` now toggles the pin in place, like `Right arrow`, which still works. On a role row, `Enter` selects the role immediately, or clears it when it is already active; the status line confirms it, and no history confirmation is added. `Tab` inserts the trigger text for every row, and `Enter` still inserts ordinary snippets. The hint line names both keys.
 - **Parameterized pinnables toggle from the picker.** `max-chars`, `show`, and `ste100` were silently excluded from the picker toggle because they contain `$1`. They now pin with the argument blank, exactly like `::pin(name)`, so each snippet's documented default applies (280 characters, smallest useful format, about 80% STE). `AutocompleteItem.hasArgs` is removed.
 - **Authoring docs mark the annotated template as illustrative.** Its trailing comments would become frontmatter values and the block-tag names it mentions inside its own text would fail the block parse, so copy a bundled example instead.
+- **Role docs use the bundled example.** The root README, the HTML preview, and the roles section lead with `mentor` instead of a custom-only `release-captain`, which remains the authoring example. Earlier claims that no role is bundled are removed, and `create-snippet` now points to `mentor` as the role example to read.
 
 ## [0.6.0] — 2026-10-19
 
